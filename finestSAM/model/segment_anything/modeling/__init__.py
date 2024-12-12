@@ -8,5 +8,5 @@ from .sam import Sam
 from .image_encoder import ImageEncoderViT
 from .mask_decoder import MaskDecoder
 from .prompt_encoder import PromptEncoder
-#from .transformer import TwoWayTransformer
-from .transformer_dropout import TwoWayTransformer
+# from .transformer import TwoWayTransformer # This is the original import from meta
+from .transformer_dropout import TwoWayTransformer # This is the new transformer with dropout

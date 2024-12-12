@@ -4,6 +4,8 @@
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
 
+# The addition of a dropout operation to each attention block and MLP block enhances regularization and helps prevent overfitting.
+
 import torch
 from torch import Tensor, nn
 

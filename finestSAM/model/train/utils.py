@@ -161,7 +161,7 @@ def validate(
 
         fabric.print(f'Validation [{epoch}]: Mean IoU: [{ious.avg:.4f}]')
 
-        if ious.avg > last_score + (cfg.eval_improvement * last_score):
+        if ious.avg > last_score:
             last_score = ious.avg
             save(fabric, model, cfg.sav_dir, "best")
 
@@ -208,7 +208,10 @@ def print_and_log_metrics(
     fabric.log_dict(log_info, step=steps)
 
 
-def print_graphs(metrics: dict[list], out_plots: str):
+def print_graphs(
+        metrics: dict[list],
+        out_plots: str
+    ):
     """
     Print the graphs for the metrics.
     

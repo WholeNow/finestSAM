@@ -21,7 +21,6 @@ config_train = {
 
     "num_epochs": 500,
     "eval_interval": 10,
-    "eval_improvement": 0.,
     "prompts": {
         "use_boxes": False,
         "use_points": True,
@@ -36,18 +35,18 @@ config_train = {
     },
 
     "sched": {
-        "type": "ReduceLROnPlateau", #"ReduceLROnPlateau" LambdaLR
+        "type": "ReduceLROnPlateau",
         "LambdaLR": {
             "decay_factor": 10, # 1 / (cfg.sched.LambdaLR.decay_factor ** (mul_factor+1))
-            "steps": None, # il primo step dev'essere maggiore di warmup_steps, stemps = list[int]
+            "steps": None,
             "warmup_steps": 0,
         },
         "ReduceLROnPlateau": {
-            "decay_factor": 0.05, #lr * factor -> 8e-4 * 0.1 = 8e-5
+            "decay_factor": 0.05, # lr * factor -> 8e-4 * 0.1 = 8e-5
             "epoch_patience": 10,
             "threshold": 1e-4,
             "cooldown": 0,
-            "min_lr": 0, # fa fare massimo 2 abbassate di lr
+            "min_lr": 0,
         },
     },
 
@@ -74,7 +73,7 @@ config_train = {
             "root_dir": "../datasetVecchio",
             "images_dir": "images",
             "annotation_file": "annotations.json",
-            "sav": "sav.pth",
+            "sav": "sav.pth", # Remove old saves on setting changes
             "val_size": 0.2,
         },
         "no_split_path": {
@@ -82,24 +81,23 @@ config_train = {
                 "root_dir": "../dataset/train",
                 "images_dir": "images",
                 "annotation_file": "annotations.json",
-                "sav": "sav.pth" # Eliminare il salvataggio ogni volta che si cambia impoastazione
+                "sav": "sav.pth" # Remove old saves on setting changes
             },
             "val": {
                 "root_dir": "../dataset/val",
                 "images_dir": "images",
                 "annotation_file": "annotations.json",
-                "sav": "sav.pth"
+                "sav": "sav.pth" # Remove old saves on setting changes
             },
         },
         "positive_points": 1,
         "negative_points": 0,
-        "use_center": True, # il primo punto positivo sarà sempre il centro di massa
-        "snap_to_grid": True, # allinea il centro di massa alla griglia di predizione utilizzata dal presdittore automatico
+        "use_center": True, # The first positive point is always the most significant for each mask
+        "snap_to_grid": True, # Align the center to the prediction grid used by the automatic predictor
     }
 }
 
 config_predict = {
-    "approx_accuracy": 0.01,
     "opacity": 0.9,
 }
 

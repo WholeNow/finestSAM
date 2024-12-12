@@ -1,14 +1,15 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from PIL import Image, ImageDraw
-import torchvision.transforms as transforms
 
-def show_anns(anns, opacity=0.35):
+def show_anns(
+        anns: list, 
+        opacity: float = 0.35
+    ):
     '''
     Show annotations on the image.
 
     Args:
-        anns (list): The list of annotations, è la lista di output del predittore automatico.
+        anns (list): The list of annotations, which is the output list of the automatic predictor.
         opacity (float): The opacity of the masks.
     '''
 

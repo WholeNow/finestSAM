@@ -162,12 +162,12 @@ def train_loop(
             for data, pred_masks, iou_predictions, logits in zip(batched_data, batched_pred_masks, batched_iou_predictions, batched_logits):
 
                 if cfg.multimask_output:
-                    # Separa la tripla di maschere predette
+                    # Separates the triple of predicted masks
                     separated_masks = torch.unbind(pred_masks, dim=1)
                     separated_scores = torch.unbind(iou_predictions, dim=1)
                     separated_logits = torch.unbind(logits, dim=1)
 
-                    # Seleziona solo quella con il punteggio migliore
+                    # Select only the one with the best score
                     best_index = torch.argmax(torch.tensor([torch.mean(score) for score in separated_scores]))
                     pred_masks = separated_masks[best_index]
                     iou_predictions = separated_scores[best_index]
@@ -179,12 +179,12 @@ def train_loop(
 
                 if cfg.prompts.use_logits: epoch_logits.append(logits)
 
-                # Aggiorna metriche
+                # Update the metrics
                 batch_iou = calc_iou(pred_masks, data["gt_masks"])
                 iter_metrics["iou"] += torch.mean(batch_iou)
                 iter_metrics["iou_pred"] += torch.mean(iou_predictions)
 
-                # Calcola loss
+                # Calculate the losses
                 iter_metrics["loss_focal"] += focal_loss(pred_masks, data["gt_masks"], len(pred_masks)) 
                 iter_metrics["loss_dice"] += dice_loss(pred_masks, data["gt_masks"], len(pred_masks))
                 iter_metrics["loss_iou"] += F.mse_loss(iou_predictions, batch_iou, reduction='mean')
@@ -218,7 +218,7 @@ def train_loop(
         if (cfg.eval_interval > 0 and epoch % cfg.eval_interval == 0) or (epoch == cfg.num_epochs):
             val_score = validate(fabric, cfg, model, val_dataloader, epoch, val_score)
             
-        # Aggiorna le metriche per i plot
+        # Update the metrics for the plots
         metrics["dice_loss"].append(cfg.losses.dice_ratio * epoch_metrics.dice_losses.avg)
         metrics["focal_loss"].append(cfg.losses.focal_ratio * epoch_metrics.focal_losses.avg)
         metrics["space_iou_loss"].append(cfg.losses.iou_ratio * epoch_metrics.space_iou_losses.avg)

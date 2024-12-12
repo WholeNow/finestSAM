@@ -1,28 +1,23 @@
 import os
 import cv2
 import torch
-import numpy as np
 import lightning as L
-import geopandas as gpd
 import matplotlib.pyplot as plt
-from PIL import Image, ImageDraw
 from box import Box
-from shapely.geometry import Polygon
 from .utils import (
     show_anns,
 )
 from ..model import FinestSAM
-from ..dataset import COCODataset
 
 
 def automatic_predictions(
         cfg: Box, 
         path: str,
-        approx_accuracy: float = 0.01,
         opacity: float = 0.35
     ):
     """
-    Predict the masks of the image and save them in a shapefile.
+    Predict the masks of the image and save them in a png file.
+    The directory of the output is specified in the configuration file.
     
     Args:
         cfg (Box): The configuration file.
@@ -42,7 +37,7 @@ def automatic_predictions(
 
     # Load the model 
     with torch.no_grad():
-        fabric = L.Fabric(accelerator=cfg.device, # non è supportata la tpu, si può predirre solo con una singola gpu, impostare sotto il controllo
+        fabric = L.Fabric(accelerator=cfg.device, #  "tpu" is not supported in this version
                       devices=1,
                       strategy="auto")
         
@@ -58,10 +53,10 @@ def automatic_predictions(
         predictor = model.get_automatic_predictor()
         masks = predictor.generate(image)
            
-    # Se non esiste la cartella di output, la crea
+    # Create the output directory if it does not exist
     os.makedirs(cfg.out_dir, exist_ok=True)
 
-    # Salvataggio delle predizioni come file .png
+    # Save the predictions as a .png file
     fig, ax = plt.subplots(figsize=(6.4, 6.4), dpi=100)  # 6.4 inches * 100 dpi = 640 pixels
     ax.set_position([0, 0, 1, 1])  # [left, bottom, width, height]
     plt.imshow(image)
@@ -71,4 +66,4 @@ def automatic_predictions(
     plt.show()
     plt.clf()
 
-    print("Predizioni Salvate")
+    print("Predictions saved in:", os.path.join(cfg.out_dir, "output.png"))

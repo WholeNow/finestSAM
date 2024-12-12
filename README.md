@@ -1,100 +1,106 @@
 # finestSAM
 
-Questo progetto è stato realizzato come progetto di tesi per l'Università degli Studi di Cagliari da:
+This project was carried out as part of the thesis at the University of Cagliari by:
 
-* [Marco Pilia](https://github.com/Marchisceddu)
-* [Simone Dessi](https://github.com/Druimo)
 
-Lo scopo principale è cercare di fare il fine tuning del modello Segment-Anything di MetaAI su un set di dati personalizzati in formato COCO, riuscendo a fornire un'implementazione efficacie per quanto riguarda le predizioni tramite il predittore automatico di SAM.
-Il codice sfrutta il framework Fabric di Lightning AI per fornire un implementazione efficiente del modello.
+* [`Marco Pilia`](https://github.com/Marchisceddu)
+* [`Simone Dessi`](https://github.com/Druimo)
 
-## Importazione Dataset:
+The main goal is to perform fine-tuning of the Segment-Anything model by MetaAI on a custom dataset in COCO format, with the aim of providing an effective implementation for predictions using SAM's automatic predictor.
+The code utilizes the Fabric framework from Lightning AI to offer an efficient implementation of the model.
 
-Inserire un dataset formato coco all'interno della main dir, la cartella dev'essere formattata come segue:
+To read the full research conducted for solving the task, you can consult the thesis (in Italian) at [`link`](https://drive.google.com/file/d/1JJwgVJOXWdbUqyN0FSMuvoJxFhoqSF4g/view?usp=sharing)
 
-    ```python
-    datset/
-    ├── images/ # Le immagini del dataset
-    │   ├── 0.png
-    │   ├── 1.png
-    │   └── ...
-    └── annotations.json # annotazioni formato coco
-    ```
+## Dataset
 
- Per specificare al modello il nome del dataset inserito modificare le voci correlate come spiegato nella sezione Config (mettere link), di default viene cercata la cartella "dataset".
+To add a COCO-formatted dataset into the main directory, you should structure your dataset directory as follows:
 
-## Setup:
+```python
+dataset/
+├── images/  # Folder containing the dataset images
+│   ├── 0.png
+│   ├── 1.png
+│   └── ...
+└── annotations.json  # COCO-formatted annotations file
+```
 
-1. Scaricare il checkpoint del modello SAM, la spiegazione è presente in [shape_SAM/sav/](https://github.com/Marchisceddu/Progetto_Urbismap/blob/main/shape_SAM/sav/)
+To specify the name of the dataset in the model, modify the relevant settings as explained in the Config section of the [`finestSAM/config.py`](https://github.com/Marchisceddu/finestSAM/blob/main/finestSAM/config.py). By default, the model expects a folder named `"dataset"`. Ensure that the dataset path is correctly referenced in this file for proper integration.
 
-2. Installare le dipendenze necessarie:
+## Setup
 
-    * Installare tramite pip il file [requirements.txt](https://github.com/Marchisceddu/Progetto_Urbismap/requirements.txt)
+Here are the steps to follow:
 
-          pip install -r requirements.txt
+1. **Download the SAM model checkpoint**  
+   The instructions for downloading the SAM model checkpoint can be found in the [`finestSAM/sav/`](https://github.com/Marchisceddu/finestSAM/blob/main/finestSAM/sav/) directory.
 
-    * Creare un ambiente conda tramite il file [environment.yaml](https://github.com/Marchisceddu/Progetto_Urbismap/environment.yaml)
+2. **Install necessary dependencies:**
 
-          conda env create -f environment.yml
+    - Install dependencies using pip by running the following command from the project directory:
+      ```bash
+      pip install -r requirements.txt
+      ```
 
-## Config:
+    - Alternatively, you can create a Conda environment using the provided `environment.yaml` file:
+      ```bash
+      conda env create -f environment.yaml
+      ```
 
-Per cambiare le impostazioni modificare il file [Shape_SAM/config.py](https://github.com/Marchisceddu/Progetto_Urbismap/blob/main/hape_SAM/config.py)
+This will ensure that all required packages and libraries are installed and ready for use.
+
+## Config
+
+The hyperparameters required for the model are specified in the file [`finestSAM/config.py`](https://github.com/Marchisceddu/finestSAM/blob/main/finestSAM/config.py)
 
 <details>
 
-<summary> Struttura: </summary>
-<br>
+<summary> Here's a detailed summary of the configuration structure for the model: </summary>
 
-Generali:
+### **General Configuration**:
 ```python
-"device": str = "auto" or "gpu" or "cpu", # Hardware su cui eseguire il modello (non è supportata mps, se si usa un mac m1 impostare su cpu)
-"num_devices": int # Numero di dispositivi da utilizzare
-            or (list str) # definire queli GPU utilizzare
-            or str = "auto",
-"num_nodes": int, # Numero di nodi GPU per l'addestramento distribuito
-"seed_device": int / None per random,
-"sav_dir": str, # Cartella di output per i salvataggi
-"out_dir": str, # Cartella di output per le predizioni
+"device": str = "auto" or "gpu" or "cpu", # Hardware to run the model (mps not supported; set to cpu for Mac M1)
+"num_devices": int or (list of str) or str = "auto", # Number of devices or list of GPUs or auto to select the best device
+"num_nodes": int, # Number of GPU nodes for distributed training
+"seed_device": int / None for random,
+"sav_dir": str, # Output folder for model saves
+"out_dir": str, # Output folder for predictions
 
 "model": {
-    "type": str = "vit_h" or "vit_l" or "vit_b",
-    "checkpoint": str, # Nome checkpoint, formato -> nome.pth
+    "type": str = "vit_h" or "vit_l" or "vit_b", # Model type
+    "checkpoint": str, # Checkpoint name in .pth format
 },
 ```
 
-Train:
+### **Training Configuration**:
 ```python
-"seed_dataloader": int / None per random,
-"batch_size": int, # Grandezza batch delle immagini
-"num_workers": int, # Quanti sottoprocessi utilizzare per il caricamento dei dati (0 -> i dati verranno caricati nel processo principale)
+"seed_dataloader": int / None for random,
+"batch_size": int, # Batch size for images
+"num_workers": int, # Number of subprocesses for data loading (0 means loading in the main process)
 
-"num_epochs": int, # Numero di epoche di train
-"eval_interval": int, # Intervallo di validazione
-"eval_improvement": float (0-1), # Percentuale oltre il quale avviene il salvataggio
+"num_epochs": int, # Number of training epochs
+"eval_interval": int, # Validation interval
 "prompts": {
-    "use_boxes": bool, # Se True usa le boxe per il train
-    "use_points": bool, # Se True usa i punti per il train
-    "use_masks": bool, # Se True usa le annotazioni per il train
-    "use_logits": bool, # Se True usa i logits dell'epoca precedente (se True viene ignorato use_masks)
+    "use_boxes": bool, # Whether to use bounding boxes for training
+    "use_points": bool, # Whether to use points for training
+    "use_masks": bool, # Whether to use annotations for training
+    "use_logits": bool, # Whether to use logits from the previous epoch (if True, ignore use_masks)
 },
 "multimask_output": bool,
 
 "opt": {
-    "learning_rate": int,
-    "weight_decay": int,
+    "learning_rate": int, # Learning rate
+    "weight_decay": int, # Weight decay
 },
 
 "sched": {
-        "type": str = "ReduceLROnPlateau" or  "LambdaLR"
+        "type": str = "ReduceLROnPlateau" or  "LambdaLR",
         "LambdaLR": {
-            "decay_factor": int, # fattore di dacadimento del lr funziona tramite la formula -> 1 / (decay_factor ** (mul_factor+1))
-            "steps": list int, # lista che indica ogni quante epoche deve decadere il lr (il primo step dev'essere maggiore di warmup_steps)
-            "warmup_steps": int, # aumenta il lr fino ad arrivare a stabilizzarlo in questo numero d'epoche
+            "decay_factor": int, # Learning rate decay factor using the formula -> 1 / (decay_factor ** (mul_factor+1))
+            "steps": list int, # List of steps at which the LR should decay
+            "warmup_steps": int, # Number of epochs for LR warmup
         },
         "ReduceLROnPlateau": {
-            "decay_factor": float (0-1), # fattore di dacadimento del lr funziona tramite la formula -> lr * factor -> 8e-4 * 0.1 = 8e-5
-            "epoch_patience": int, # Pazienza per il decadimento del lr
+            "decay_factor": float (0-1), # LR decay factor (e.g., lr * factor)
+            "epoch_patience": int, # Patience for LR decay
             "threshold": float,
             "cooldown": int,
             "min_lr": int,
@@ -102,91 +108,219 @@ Train:
     },
 
 "losses": {
-    "focal_ratio": float, # Peso di Focal loss sulla loss totale
-    "dice_ratio": float, # Peso di Dice loss sulla loss totale
-    "iou_ratio": float, # Peso di Space IoU loss sulla loss totale
-    "focal_alpha": float, # Valore di alpha per la Focal loss
-    "focal_gamma": int, # Valore di gamma per la Focal loss
+    "focal_ratio": float, # Weight of focal loss in the total loss
+    "dice_ratio": float, # Weight of dice loss in the total loss
+    "iou_ratio": float, # Weight of IoU loss in the total loss
+    "focal_alpha": float, # Alpha value for focal loss
+    "focal_gamma": int, # Gamma value for focal loss
 },
 
 "model_layer": {
     "freeze": {
-        "image_encoder": bool, # Se True freez del livello
-        "prompt_encoder": bool, # Se True freez del livello
-        "mask_decoder": bool, # Se True freez del livello
+        "image_encoder": bool, # If True, freeze image encoder layer
+        "prompt_encoder": bool, # If True, freeze prompt encoder layer
+        "mask_decoder": bool, # If True, freeze mask decoder layer
     },
 },
 
 "dataset": {
-    "auto_split": bool, # Se True verra usato il dataset presente in path ed effettuare uno split per la validation della dimensione di val_size 
+    "auto_split": bool, # If True, splits the dataset for validation
     "seed": 42,
     "split_path": {
         "root_dir": str,
         "images_dir": str,
         "annotation_file": str,
-        "sav": str, # Eliminare il sav vecchio ad ogni cambio di impostazione
-        "val_size": float (0-1), # Percentuale grandezza validation dataset
+        "sav": str, # Remove old saves on setting changes
+        "val_size": float (0-1), # Validation dataset size percentage
     },
     "no_split_path": {
         "train": {
             "root_dir": str,
             "images_dir": str,
             "annotation_file": str,
-            "sav": str, # Eliminare il sav vecchio ad ogni cambio di impostazione
+            "sav": str, # Remove old saves on setting changes
         },
         "val": {
             "root_dir": str,
             "images_dir": str,
             "annotation_file": str,
-            "sav": str, # Eliminare il sav vecchio ad ogni cambio di impostazione
+            "sav": str, # Remove old saves on setting changes
         },
     },
-    "positive_points": int, # Numero punti positivi passati con __getitem__
-    "negative_points": int, # Numero punti negativi passati con __getitem__
-    "use_center": True, # il primo punto positivo sarà sempre il centro di massa
-    "snap_to_grid": True, # allinea il centro di massa alla griglia di predizione utilizzata dal presdittore automatico
+    "positive_points": int, # Number of positive points passed with __getitem__
+    "negative_points": int, # Number of negative points passed with __getitem__
+    "use_center": True, # The first positive point is always the most significant for each mask
+    "snap_to_grid": True, # Align the center to the prediction grid used by the automatic predictor
 }
 ```
 
-Predizioni:
+### **Prediction Configuration**:
 ```python
-"approx_accuracy": float, # The approximation accuracy of the polygons
-"opacity": float, 
+"opacity": float,  # Transparency of predicted masks when displaying the image
 ```
 
 </details>
 
-## Run model:
+## Run model
 
-Eseguire il file [finestSAM/__main__.py](https://github.com/Marchisceddu/Progetto_Urbismap/blob/main/finestSAM/__main__.py)
+To execute the file [`finestSAM/__main__.py`](https://github.com/Marchisceddu/finestSAM/blob/main/finestSAM/__main__.py), use the following command-line arguments, depending on the task you want to perform:
 
-Args (obbligatori):
+### **Training the Model:**
+   Run the training process by specifying the `--mode` as "train":
 
-```python
---mode (str)
-```
+   ```bash
+   python -m finestSAM --mode "train"
+   ```
 
-### Train
+### **Automatic Predictions:**
+   For making predictions, use the `--mode` as "predict" and specify the input image path:
 
-```python
---mode "train"
-```
+   ```bash
+   python -m finestSAM --mode "predict" --input "path/to/image.png"
+   ```
 
-### Predizioni automatiche:
+   Optionally, you can also modify the opacity of the predicted masks with the `--opacity` argument. The default value is 0.9:
 
-```python
---mode "predict" --input "percorso/image.png"
-```
+   ```bash
+   python -m finestSAM --mode "predict" --input "path/to/image.png" --opacity 0.8
+   ```
 
-* Args (opzionali - modificabili anche in config):
 
-    ```python
-    --approx_accuracy (float) default:0.01 # The approximation accuracy of the polygons
-    --opacity (float) default:0.9 
-    ```
+In addition to running the script directly, there is an [`example notebook`](https://github.com/Marchisceddu/finestSAM/blob/main/notebook.ipynb) available for better understanding and easy experimentation.
+
+## Results
+
+The fine-tuning of the model was carried out to perform efficient instance segmentation, specifically for generating polygons that delimit urban areas in PDFs. These PDFs represent urban planning tools that regulate land transformations, such as areas where specific building restrictions apply. 
+
+For this task, a single prompt was used during training: __1 central point per mask aligned with the automatic predictor grid.__ This prompt proved to be the most effective for training and ensuring the proper functioning of SAM's automatic predictor.
+
+### Test sam vit_b
+<details>
+
+<summary> Training progress </summary>
+
+![Train sam vit_b](assets/Test-vit_b/Test6.png)
+<p style="text-align: center; font-style: italic; width: 100%; font-size: small;">
+ Training progress for the sam_vit_b model
+</p>
+
+</details>
+
+<details>
+
+<summary> Comparison images </summary>
+
+![Test 6 - Comparison 1](assets/Test-vit_b/Test6_comparison_1.png)
+
+<p style="text-align: center; font-style: italic; font-size: small; width: 100%; display: flex; justify-content: space-between; white-space: nowrap;">
+    <span style="flex: 1; text-align: center;">Original Image</span>
+    <span style="flex: 1; text-align: center;">Ground Truth Masks</span>
+    <span style="flex: 1; text-align: center;">SAM vit_b - Masks</span>
+    <span style="flex: 1; text-align: center;">Finetuning - Masks</span>
+</p>
+
+![Test 6 - Comparison 2](assets/Test-vit_b/Test6_comparison_2.png)
+
+<p style="text-align: center; font-style: italic; font-size: small; width: 100%; display: flex; justify-content: space-between; white-space: nowrap;">
+    <span style="flex: 1; text-align: center;">Original Image</span>
+    <span style="flex: 1; text-align: center;">Ground Truth Masks</span>
+    <span style="flex: 1; text-align: center;">SAM vit_b - Masks</span>
+    <span style="flex: 1; text-align: center;">Finetuning - Masks</span>
+</p>
+
+![Test 6 - Comparison 3](assets/Test-vit_b/Test6_comparison_3.png)
+
+<p style="text-align: center; font-style: italic; font-size: small; width: 100%; display: flex; justify-content: space-between; white-space: nowrap;">
+    <span style="flex: 1; text-align: center;">Original Image</span>
+    <span style="flex: 1; text-align: center;">Ground Truth Masks</span>
+    <span style="flex: 1; text-align: center;">SAM vit_b - Masks</span>
+    <span style="flex: 1; text-align: center;">Finetuning - Masks</span>
+</p>
+
+![Test 6 - Comparison 4](assets/Test-vit_b/Test6_comparison_4.png)
+
+<p style="text-align: center; font-style: italic; font-size: small; width: 100%; display: flex; justify-content: space-between; white-space: nowrap;">
+    <span style="flex: 1; text-align: center;">Original Image</span>
+    <span style="flex: 1; text-align: center;">Ground Truth Masks</span>
+    <span style="flex: 1; text-align: center;">SAM vit_b - Masks</span>
+    <span style="flex: 1; text-align: center;">Finetuning - Masks</span>
+</p>
+
+</details>
+
+
+### Test sam vit_h
+<details>
+
+<summary> Training progress </summary>
+
+![Train sam vit_b](assets/Test-vit_h/Test8.png)
+<p style="text-align: center; font-style: italic; width: 100%; font-size: small;">
+ Training progress for the sam_vit_h model
+</p>
+
+</details>
+
+<details>
+
+<summary> Comparison images </summary>
+
+![Test 6 - Comparison 1](assets/Test-vit_h/Test8_comparison_1.png)
+
+<p style="text-align: center; font-style: italic; font-size: small; width: 100%; display: flex; justify-content: space-between; white-space: nowrap;">
+    <span style="flex: 1; text-align: center;">Original Image</span>
+    <span style="flex: 1; text-align: center;">Ground Truth Masks</span>
+    <span style="flex: 1; text-align: center;">SAM vit_b - Masks</span>
+    <span style="flex: 1; text-align: center;">Finetuning - Masks</span>
+</p>
+
+![Test 6 - Comparison 2](assets/Test-vit_h/Test8_comparison_2.png)
+
+<p style="text-align: center; font-style: italic; font-size: small; width: 100%; display: flex; justify-content: space-between; white-space: nowrap;">
+    <span style="flex: 1; text-align: center;">Original Image</span>
+    <span style="flex: 1; text-align: center;">Ground Truth Masks</span>
+    <span style="flex: 1; text-align: center;">SAM vit_b - Masks</span>
+    <span style="flex: 1; text-align: center;">Finetuning - Masks</span>
+</p>
+
+![Test 6 - Comparison 3](assets/Test-vit_h/Test8_comparison_3.png)
+
+<p style="text-align: center; font-style: italic; font-size: small; width: 100%; display: flex; justify-content: space-between; white-space: nowrap;">
+    <span style="flex: 1; text-align: center;">Original Image</span>
+    <span style="flex: 1; text-align: center;">Ground Truth Masks</span>
+    <span style="flex: 1; text-align: center;">SAM vit_b - Masks</span>
+    <span style="flex: 1; text-align: center;">Finetuning - Masks</span>
+</p>
+
+![Test 6 - Comparison 4](assets/Test-vit_h/Test8_comparison_4.png)
+
+<p style="text-align: center; font-style: italic; font-size: small; width: 100%; display: flex; justify-content: space-between; white-space: nowrap;">
+    <span style="flex: 1; text-align: center;">Original Image</span>
+    <span style="flex: 1; text-align: center;">Ground Truth Masks</span>
+    <span style="flex: 1; text-align: center;">SAM vit_b - Masks</span>
+    <span style="flex: 1; text-align: center;">Finetuning - Masks</span>
+</p>
+
+</details>
+
+
+## Possible Additions
+
+- [ ] Training also working for the manual predictor:
+
+    - [ ] Added a function to predict using the manual predictor
+
+    - [ ] Added a function to create the bounding boxes for training (suggestion on line 175 [finestSAM/model/dataset.py](https://github.com/Marchisceddu/finestSAM/blob/main/finestSAM/model/dataset.py))
+
+- [ ] Validation method based on SAM automatic predictor
+
+- [ ] tpu support
 
 ## Resources
 
 - [Segment Anything](https://github.com/facebookresearch/segment-anything)
 - [Lightning AI](https://github.com/Lightning-AI/lightning)
 - [lightning-sam](https://github.com/luca-medeiros/lightning-sam)
+
+## License
+The model is licensed under the [Apache 2.0 license](https://github.com/Marchisceddu/finestSAM/blob/main/LICENSE.txt).

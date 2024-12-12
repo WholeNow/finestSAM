@@ -1,11 +1,11 @@
-# Download save meta
+# Download Save Meta
 
-Tre versioni del modello sono disponibili con dimensioni di base differenti
+Three versions of the model are available with different base sizes.
 
-Questi modelli possono essere istanziati modiciando il paramentro `model.type` all'interno del file [config](https://github.com/Marchisceddu/Progetto_Urbismap/blob/main/shape_SAM/model/config.py)
+These models can be instantiated by modifying the `model.type` parameter within the [config](https://github.com/Marchisceddu/finestSAM/blob/main/finestSAM/config.py) file.
 
-Clicca sui link seguenti per scaricare il checkpoint per il tipo di modello corrispondente
+Click on the following links to download the checkpoint for the corresponding model type:
 
-- **`vit_h`: [ViT-H SAM model.](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth)**  (2,4 GB) -> default
-- `vit_l`: [ViT-L SAM model.](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_l_0b3195.pth) (1,2 GB)
+- **`vit_h`: [ViT-H SAM model.](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth)** (2.4 GB) -> default
+- `vit_l`: [ViT-L SAM model.](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_l_0b3195.pth) (1.2 GB)
 - `vit_b`: [ViT-B SAM model.](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth) (358 MB)

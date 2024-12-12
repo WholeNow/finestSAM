@@ -36,6 +36,7 @@ class COCODataset(Dataset):
             cfg (Box): The configuration file.
             transform (transforms.Compose): The transformation to apply to the data.
             seed (int): The seed for the random number generator.
+            sav (str): The path to the file where the data is saved.
         """
         self.cfg = cfg
         self.seed = seed
@@ -59,7 +60,7 @@ class COCODataset(Dataset):
             self.ann_valid = []
             if self.cfg.dataset.use_center: self.centroids = []
 
-        # Calcola i dati principali per ogni immagine
+        # Calculate the main data for each image
         bar = tqdm.tqdm(total = len(self.image_ids), desc = "Uploading dataset...", leave=False)
         for image_id in self.image_ids:
             image_info = self.coco.loadImgs(image_id)[0]
@@ -175,7 +176,7 @@ class COCODataset(Dataset):
             ''' 
             Add the code here
 
-            Se il codice non c'è viene considerata la box originale
+            if the code is not present, the box is considered as the original one
             '''
         
             # Get the masks
@@ -284,9 +285,13 @@ def get_collate_fn(cfg: Box, type):
     return collate_fn
 
 
-def load_dataset(cfg: Box, img_size: int) -> Tuple[DataLoader, DataLoader]:
+def load_dataset(
+        cfg: Box, 
+        img_size: int
+    ) -> Tuple[DataLoader, DataLoader]:
     """
     Load the dataset and return the dataloaders for training and validation.
+
     Args:
         cfg (Box): The configuration file.
         img_size (int): The size of the image to resize to.
