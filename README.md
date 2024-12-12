@@ -200,9 +200,7 @@ For this task, a single prompt was used during training: __1 central point per m
 <summary> Training progress </summary>
 
 ![Train sam vit_b](assets/Test-vit_b/Test6.png)
-<p style="text-align: center; font-style: italic; width: 100%; font-size: small;">
- Training progress for the sam_vit_b model
-</p>
+ _Training progress for the sam_vit_b model_
 
 </details>
 
@@ -211,40 +209,16 @@ For this task, a single prompt was used during training: __1 central point per m
 <summary> Comparison images </summary>
 
 ![Test 6 - Comparison 1](assets/Test-vit_b/Test6_comparison_1.png)
-
-<p style="text-align: center; font-style: italic; font-size: small; width: 100%; display: flex; justify-content: space-between; white-space: nowrap;">
-    <span style="flex: 1; text-align: center;">Original Image</span>
-    <span style="flex: 1; text-align: center;">Ground Truth Masks</span>
-    <span style="flex: 1; text-align: center;">SAM vit_b - Masks</span>
-    <span style="flex: 1; text-align: center;">Finetuning - Masks</span>
-</p>
+ _`Original Image`_ , _`Ground Truth Masks`_ , _`SAM vit_b_ - _Masks`_ , _`Finetuning - Masks`_ 
 
 ![Test 6 - Comparison 2](assets/Test-vit_b/Test6_comparison_2.png)
-
-<p style="text-align: center; font-style: italic; font-size: small; width: 100%; display: flex; justify-content: space-between; white-space: nowrap;">
-    <span style="flex: 1; text-align: center;">Original Image</span>
-    <span style="flex: 1; text-align: center;">Ground Truth Masks</span>
-    <span style="flex: 1; text-align: center;">SAM vit_b - Masks</span>
-    <span style="flex: 1; text-align: center;">Finetuning - Masks</span>
-</p>
+ _`Original Image`_ , _`Ground Truth Masks`_ , _`SAM vit_b_ - _Masks`_ , _`Finetuning - Masks`_ 
 
 ![Test 6 - Comparison 3](assets/Test-vit_b/Test6_comparison_3.png)
-
-<p style="text-align: center; font-style: italic; font-size: small; width: 100%; display: flex; justify-content: space-between; white-space: nowrap;">
-    <span style="flex: 1; text-align: center;">Original Image</span>
-    <span style="flex: 1; text-align: center;">Ground Truth Masks</span>
-    <span style="flex: 1; text-align: center;">SAM vit_b - Masks</span>
-    <span style="flex: 1; text-align: center;">Finetuning - Masks</span>
-</p>
+ _`Original Image`_ , _`Ground Truth Masks`_ , _`SAM vit_b_ - _Masks`_ , _`Finetuning - Masks`_ 
 
 ![Test 6 - Comparison 4](assets/Test-vit_b/Test6_comparison_4.png)
-
-<p style="text-align: center; font-style: italic; font-size: small; width: 100%; display: flex; justify-content: space-between; white-space: nowrap;">
-    <span style="flex: 1; text-align: center;">Original Image</span>
-    <span style="flex: 1; text-align: center;">Ground Truth Masks</span>
-    <span style="flex: 1; text-align: center;">SAM vit_b - Masks</span>
-    <span style="flex: 1; text-align: center;">Finetuning - Masks</span>
-</p>
+ _`Original Image`_ , _`Ground Truth Masks`_ , _`SAM vit_b_ - _Masks`_ , _`Finetuning - Masks`_ 
 
 </details>
 
@@ -255,9 +229,7 @@ For this task, a single prompt was used during training: __1 central point per m
 <summary> Training progress </summary>
 
 ![Train sam vit_b](assets/Test-vit_h/Test8.png)
-<p style="text-align: center; font-style: italic; width: 100%; font-size: small;">
- Training progress for the sam_vit_h model
-</p>
+ _Training progress for the sam_vit_h model_
 
 </details>
 
@@ -266,40 +238,16 @@ For this task, a single prompt was used during training: __1 central point per m
 <summary> Comparison images </summary>
 
 ![Test 6 - Comparison 1](assets/Test-vit_h/Test8_comparison_1.png)
-
-<p style="text-align: center; font-style: italic; font-size: small; width: 100%; display: flex; justify-content: space-between; white-space: nowrap;">
-    <span style="flex: 1; text-align: center;">Original Image</span>
-    <span style="flex: 1; text-align: center;">Ground Truth Masks</span>
-    <span style="flex: 1; text-align: center;">SAM vit_b - Masks</span>
-    <span style="flex: 1; text-align: center;">Finetuning - Masks</span>
-</p>
+ _`Original Image`_ , _`Ground Truth Masks`_ , _`SAM vit_b_ - _Masks`_ , _`Finetuning - Masks`_ 
 
 ![Test 6 - Comparison 2](assets/Test-vit_h/Test8_comparison_2.png)
-
-<p style="text-align: center; font-style: italic; font-size: small; width: 100%; display: flex; justify-content: space-between; white-space: nowrap;">
-    <span style="flex: 1; text-align: center;">Original Image</span>
-    <span style="flex: 1; text-align: center;">Ground Truth Masks</span>
-    <span style="flex: 1; text-align: center;">SAM vit_b - Masks</span>
-    <span style="flex: 1; text-align: center;">Finetuning - Masks</span>
-</p>
+ _`Original Image`_ , _`Ground Truth Masks`_ , _`SAM vit_b_ - _Masks`_ , _`Finetuning - Masks`_ 
 
 ![Test 6 - Comparison 3](assets/Test-vit_h/Test8_comparison_3.png)
-
-<p style="text-align: center; font-style: italic; font-size: small; width: 100%; display: flex; justify-content: space-between; white-space: nowrap;">
-    <span style="flex: 1; text-align: center;">Original Image</span>
-    <span style="flex: 1; text-align: center;">Ground Truth Masks</span>
-    <span style="flex: 1; text-align: center;">SAM vit_b - Masks</span>
-    <span style="flex: 1; text-align: center;">Finetuning - Masks</span>
-</p>
+ _`Original Image`_ , _`Ground Truth Masks`_ , _`SAM vit_b_ - _Masks`_ , _`Finetuning - Masks`_ 
 
 ![Test 6 - Comparison 4](assets/Test-vit_h/Test8_comparison_4.png)
-
-<p style="text-align: center; font-style: italic; font-size: small; width: 100%; display: flex; justify-content: space-between; white-space: nowrap;">
-    <span style="flex: 1; text-align: center;">Original Image</span>
-    <span style="flex: 1; text-align: center;">Ground Truth Masks</span>
-    <span style="flex: 1; text-align: center;">SAM vit_b - Masks</span>
-    <span style="flex: 1; text-align: center;">Finetuning - Masks</span>
-</p>
+ _`Original Image`_ , _`Ground Truth Masks`_ , _`SAM vit_b_ - _Masks`_ , _`Finetuning - Masks`_ 
 
 </details>
 
