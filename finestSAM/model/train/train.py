@@ -133,7 +133,7 @@ def train_loop(
 
             epoch_metrics.data_time.update(time.time()-end)
 
-            # Se presenti e selezionati dalle impostazioni passa i logits dell'epoca precedente
+            # If present and selected by the settings, pass the logits of the previous epoch
             if epoch > 1 and cfg.prompts.use_logits: [data.update({"mask_inputs": logits.clone().detach().unsqueeze(1)}) for data, logits in zip(batched_data, epoch_logits)]
 
             # Forward pass

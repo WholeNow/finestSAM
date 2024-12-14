@@ -228,7 +228,7 @@ For this task, a single prompt was used during training: __1 central point per m
 
 <summary> Training progress </summary>
 
-![Train sam vit_b](assets/Test-vit_h/Test8.png)
+![Train sam vit_h](assets/Test-vit_h/Test8.png)
  _Training progress for the sam_vit_h model_
 
 </details>
@@ -238,16 +238,16 @@ For this task, a single prompt was used during training: __1 central point per m
 <summary> Comparison images </summary>
 
 ![Test 6 - Comparison 1](assets/Test-vit_h/Test8_comparison_1.png)
- _`Original Image`_ , _`Ground Truth Masks`_ , _`SAM vit_b_ - _Masks`_ , _`Finetuning - Masks`_ 
+ _`Original Image`_ , _`Ground Truth Masks`_ , _`SAM vit_h_ - _Masks`_ , _`Finetuning - Masks`_ 
 
 ![Test 6 - Comparison 2](assets/Test-vit_h/Test8_comparison_2.png)
- _`Original Image`_ , _`Ground Truth Masks`_ , _`SAM vit_b_ - _Masks`_ , _`Finetuning - Masks`_ 
+ _`Original Image`_ , _`Ground Truth Masks`_ , _`SAM vit_h_ - _Masks`_ , _`Finetuning - Masks`_ 
 
 ![Test 6 - Comparison 3](assets/Test-vit_h/Test8_comparison_3.png)
- _`Original Image`_ , _`Ground Truth Masks`_ , _`SAM vit_b_ - _Masks`_ , _`Finetuning - Masks`_ 
+ _`Original Image`_ , _`Ground Truth Masks`_ , _`SAM vit_h_ - _Masks`_ , _`Finetuning - Masks`_ 
 
 ![Test 6 - Comparison 4](assets/Test-vit_h/Test8_comparison_4.png)
- _`Original Image`_ , _`Ground Truth Masks`_ , _`SAM vit_b_ - _Masks`_ , _`Finetuning - Masks`_ 
+ _`Original Image`_ , _`Ground Truth Masks`_ , _`SAM vit_h_ - _Masks`_ , _`Finetuning - Masks`_ 
 
 </details>
 

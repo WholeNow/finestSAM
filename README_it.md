@@ -209,40 +209,16 @@ Per questi test è stato ulizzato un solo prompt per l'allenamento, ossia `1 pun
 <summary> Immagini di comparazione </summary>
 
 ![Test 6 - Comparison 1](assets/Test-vit_b/Test6_comparison_1.png)
-
-<p style="text-align: center; font-style: italic; font-size: small; width: 100%; display: flex; justify-content: space-between; white-space: nowrap;">
-    <span style="flex: 1; text-align: center;">Immagine originale</span>
-    <span style="flex: 1; text-align: center;">Maschere di verità</span>
-    <span style="flex: 1; text-align: center;">SAM vit_b - Maschere</span>
-    <span style="flex: 1; text-align: center;">Finetuning - Maschere</span>
-</p>
+ _`Immagine originale`_ , _`Maschere di verità`_ , _`SAM vit_b - Maschere`_ , _`Finetuning - Maschere`_ 
 
 ![Test 6 - Comparison 2](assets/Test-vit_b/Test6_comparison_2.png)
-
-<p style="text-align: center; font-style: italic; font-size: small; width: 100%; display: flex; justify-content: space-between; white-space: nowrap;">
-    <span style="flex: 1; text-align: center;">Immagine originale</span>
-    <span style="flex: 1; text-align: center;">Maschere di verità</span>
-    <span style="flex: 1; text-align: center;">SAM vit_b - Maschere</span>
-    <span style="flex: 1; text-align: center;">Finetuning - Maschere</span>
-</p>
+ _`Immagine originale`_ , _`Maschere di verità`_ , _`SAM vit_b - Maschere`_ , _`Finetuning - Maschere`_ 
 
 ![Test 6 - Comparison 3](assets/Test-vit_b/Test6_comparison_3.png)
-
-<p style="text-align: center; font-style: italic; font-size: small; width: 100%; display: flex; justify-content: space-between; white-space: nowrap;">
-    <span style="flex: 1; text-align: center;">Immagine originale</span>
-    <span style="flex: 1; text-align: center;">Maschere di verità</span>
-    <span style="flex: 1; text-align: center;">SAM vit_b - Maschere</span>
-    <span style="flex: 1; text-align: center;">Finetuning - Maschere</span>
-</p>
+ _`Immagine originale`_ , _`Maschere di verità`_ , _`SAM vit_b - Maschere`_ , _`Finetuning - Maschere`_ 
 
 ![Test 6 - Comparison 4](assets/Test-vit_b/Test6_comparison_4.png)
-
-<p style="text-align: center; font-style: italic; font-size: small; width: 100%; display: flex; justify-content: space-between; white-space: nowrap;">
-    <span style="flex: 1; text-align: center;">Immagine originale</span>
-    <span style="flex: 1; text-align: center;">Maschere di verità</span>
-    <span style="flex: 1; text-align: center;">SAM vit_b - Maschere</span>
-    <span style="flex: 1; text-align: center;">Finetuning - Maschere</span>
-</p>
+ _`Immagine originale`_ , _`Maschere di verità`_ , _`SAM vit_b - Maschere`_ , _`Finetuning - Maschere`_ 
 
 </details>
 
@@ -252,9 +228,9 @@ Per questi test è stato ulizzato un solo prompt per l'allenamento, ossia `1 pun
 
 <summary> Andamento del train </summary>
 
-![Train sam vit_b](assets/Test-vit_h/Test8.png)
+![Train sam vit_h](assets/Test-vit_h/Test8.png)
 <p style="text-align: center; font-style: italic; width: 100%; font-size: small;">
- Andamento del train per il modello sam_vit_b
+ Andamento del train per il modello sam_vit_h
 </p>
 
 </details>
@@ -264,40 +240,16 @@ Per questi test è stato ulizzato un solo prompt per l'allenamento, ossia `1 pun
 <summary> Immagini di comparazione </summary>
 
 ![Test 6 - Comparison 1](assets/Test-vit_h/Test8_comparison_1.png)
-
-<p style="text-align: center; font-style: italic; font-size: small; width: 100%; display: flex; justify-content: space-between; white-space: nowrap;">
-    <span style="flex: 1; text-align: center;">Immagine originale</span>
-    <span style="flex: 1; text-align: center;">Maschere di verità</span>
-    <span style="flex: 1; text-align: center;">SAM vit_b - Maschere</span>
-    <span style="flex: 1; text-align: center;">Finetuning - Maschere</span>
-</p>
+ _`Immagine originale`_ , _`Maschere di verità`_ , _`SAM vit_h - Maschere`_ , _`Finetuning - Maschere`_ 
 
 ![Test 6 - Comparison 2](assets/Test-vit_h/Test8_comparison_2.png)
-
-<p style="text-align: center; font-style: italic; font-size: small; width: 100%; display: flex; justify-content: space-between; white-space: nowrap;">
-    <span style="flex: 1; text-align: center;">Immagine originale</span>
-    <span style="flex: 1; text-align: center;">Maschere di verità</span>
-    <span style="flex: 1; text-align: center;">SAM vit_b - Maschere</span>
-    <span style="flex: 1; text-align: center;">Finetuning - Maschere</span>
-</p>
+ _`Immagine originale`_ , _`Maschere di verità`_ , _`SAM vit_h - Maschere`_ , _`Finetuning - Maschere`_ 
 
 ![Test 6 - Comparison 3](assets/Test-vit_h/Test8_comparison_3.png)
-
-<p style="text-align: center; font-style: italic; font-size: small; width: 100%; display: flex; justify-content: space-between; white-space: nowrap;">
-    <span style="flex: 1; text-align: center;">Immagine originale</span>
-    <span style="flex: 1; text-align: center;">Maschere di verità</span>
-    <span style="flex: 1; text-align: center;">SAM vit_b - Maschere</span>
-    <span style="flex: 1; text-align: center;">Finetuning - Maschere</span>
-</p>
+ _`Immagine originale`_ , _`Maschere di verità`_ , _`SAM vit_h - Maschere`_ , _`Finetuning - Maschere`_ 
 
 ![Test 6 - Comparison 4](assets/Test-vit_h/Test8_comparison_4.png)
-
-<p style="text-align: center; font-style: italic; font-size: small; width: 100%; display: flex; justify-content: space-between; white-space: nowrap;">
-    <span style="flex: 1; text-align: center;">Immagine originale</span>
-    <span style="flex: 1; text-align: center;">Maschere di verità</span>
-    <span style="flex: 1; text-align: center;">SAM vit_b - Maschere</span>
-    <span style="flex: 1; text-align: center;">Finetuning - Maschere</span>
-</p>
+ _`Immagine originale`_ , _`Maschere di verità`_ , _`SAM vit_h - Maschere`_ , _`Finetuning - Maschere`_ 
 
 </details>
 
