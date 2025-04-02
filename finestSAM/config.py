@@ -9,8 +9,8 @@ config = {
     "out_dir": "out",
 
     "model": {
-        "type": 'vit_h',
-        "checkpoint": "sam_vit_h_4b8939.pth",
+        "type": 'vit_b',
+        "checkpoint": "sam_vit_b_01ec64.pth",
     },
 }
 
@@ -21,6 +21,8 @@ config_train = {
 
     "num_epochs": 500,
     "eval_interval": 10,
+    "print_validation_pred": True,
+    "save_validation_pred": False,
     "prompts": {
         "use_boxes": False,
         "use_points": True,
