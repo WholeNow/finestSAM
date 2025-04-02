@@ -23,6 +23,7 @@ from .losses import (
 from ..model import FinestSAM
 from .utils import configure_opt
 from ..dataset import load_dataset
+from ..predictions.utils import show_predictions
 
 
 def call_train(cfg: Box):
@@ -188,6 +189,8 @@ def train_loop(
                 iter_metrics["loss_focal"] += focal_loss(pred_masks, data["gt_masks"], len(pred_masks)) 
                 iter_metrics["loss_dice"] += dice_loss(pred_masks, data["gt_masks"], len(pred_masks))
                 iter_metrics["loss_iou"] += F.mse_loss(iou_predictions, batch_iou, reduction='mean')
+
+                show_predictions(data["original_image"], data["gt_masks"], pred_masks, save=False)
 
             loss_total = cfg.losses.focal_ratio * iter_metrics["loss_focal"] + cfg.losses.dice_ratio * iter_metrics["loss_dice"] + cfg.losses.iou_ratio * iter_metrics["loss_iou"]
 

@@ -20,7 +20,7 @@ config_train = {
     "num_workers": 0,
 
     "num_epochs": 500,
-    "eval_interval": 10,
+    "eval_interval": 100,
     "prompts": {
         "use_boxes": False,
         "use_points": True,
@@ -67,7 +67,7 @@ config_train = {
     },
 
     "dataset": {
-        "auto_split": False,
+        "auto_split": True,
         "seed": 42,
         "split_path": {
             "root_dir": "../dataset",
