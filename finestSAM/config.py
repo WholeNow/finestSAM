@@ -21,8 +21,6 @@ config_train = {
 
     "num_epochs": 500,
     "eval_interval": 10,
-    "print_validation_pred": True,
-    "save_validation_pred": False,
     "prompts": {
         "use_boxes": False,
         "use_points": True,
@@ -72,7 +70,7 @@ config_train = {
         "auto_split": False,
         "seed": 42,
         "split_path": {
-            "root_dir": "../datasetVecchio",
+            "root_dir": "../dataset",
             "images_dir": "images",
             "annotation_file": "annotations.json",
             "sav": "sav.pth", # Remove old saves on setting changes

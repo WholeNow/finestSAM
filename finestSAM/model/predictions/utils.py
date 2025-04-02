@@ -158,4 +158,3 @@ def show_predictions(
         plt.savefig(vis_path)
     
     plt.show()
-    plt.close(fig)

@@ -8,7 +8,6 @@ from typing import Tuple
 from torch.utils.data import DataLoader
 from lightning.fabric.fabric import _FabricOptimizer
 from ..model import FinestSAM
-from ..predictions.utils import show_predictions
 
 
 class AverageMeter:
@@ -146,12 +145,6 @@ def validate(
 
             gt_masks = [data["gt_masks"] for data in batched_data]  
             num_images = len(batched_data)
-
-            # Print predicted and ground truth masks
-            if cfg.print_validation_pred:
-                for data, pred_mask, gt_mask in zip(batched_data, pred_masks, gt_masks):
-                    show_predictions(data["original_image"], gt_mask, pred_mask, save=cfg.save_validation_pred)
-
             # Calculate IoU for each image in the batch
             for pred_mask, gt_mask in zip(pred_masks, gt_masks):
                 batch_stats = smp.metrics.get_stats(
