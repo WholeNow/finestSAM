@@ -69,7 +69,6 @@ config_train = {
     "dataset": {
         "auto_split": True,
         "seed": 42,
-        "use_cache": True, # se true utilizza il sav se presente nelle cartelle
         "split_path": {
             "root_dir": "../dataset4img",
             "images_dir": "images",

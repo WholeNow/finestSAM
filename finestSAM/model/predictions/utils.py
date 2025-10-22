@@ -63,7 +63,6 @@ def show_box(box, ax):
 
 
 import matplotlib.pyplot as plt
-
 def show_predictions(
     original_image: np.ndarray, 
     gt_masks: Union[torch.Tensor, np.ndarray], 
@@ -108,6 +107,7 @@ def show_predictions(
     if isinstance(gt_masks, torch.Tensor):
         gt_masks = gt_masks.cpu().detach()
     
+    # NOTA: Assumendo che 'show_mask' esista e funzioni come previsto
     # Handle different dimensions for ground truth masks
     if len(gt_masks.shape) == 4:  # [B, C, H, W]
         for i in range(gt_masks.shape[1]):
@@ -129,6 +129,7 @@ def show_predictions(
     if isinstance(pred_masks, torch.Tensor):
         pred_masks = pred_masks.cpu().detach()
     
+    # NOTA: Assumendo che 'show_mask' esista e funzioni come previsto
     # Handle different dimensions for predicted masks
     if len(pred_masks.shape) == 4:  # [B, C, H, W]
         for i in range(pred_masks.shape[1]):
@@ -151,4 +152,7 @@ def show_predictions(
         vis_path = os.path.join(out_vis, f"epoch{epoch}_iter{iter}_sample{idx}.png")
         plt.savefig(vis_path)
     
-    plt.show()
+    # CORREZIONE: Sostituisci plt.show() con plt.close(fig)
+    # Questo previene il blocco dello script e l'output <Figure ...>
+    # plt.show() # <-- Rimuovi
+    plt.close(fig) # <-- Aggiungi

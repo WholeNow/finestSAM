@@ -41,6 +41,7 @@ class Metrics:
 
         self.ious = AverageMeter()
         self.ious_pred = AverageMeter()
+        self.dices = AverageMeter()
 
 
 def configure_opt(cfg: Box, model: FinestSAM) -> Tuple[_FabricOptimizer, _FabricOptimizer]:
@@ -100,11 +101,12 @@ def validate(
         cfg: Box,
         model: FinestSAM, 
         val_dataloader: DataLoader, 
-        epoch: int,
-        last_score: float = 0.
-    ) -> float: 
+        epoch: int
+    ) -> Tuple[float, float]: 
     """
     Validation function for the SAM model.
+    Calcola sia IoU che Dice Score.
+    NON salva più i checkpoint, restituisce solo le metriche.
 
     Args:
         fabric (L.Fabric): The lightning fabric.
@@ -112,10 +114,13 @@ def validate(
         model (FinestSAM): The model.
         val_dataloader (DataLoader): The validation dataloader.
         epoch (int): The current epoch.
-        last_score (float): The last score.
+        
+    Returns:
+        Tuple[float, float]: (mean_iou, mean_dice)
     """
     model.eval()
     ious = AverageMeter()
+    dices = AverageMeter() # <-- AGGIUNTO
     
     with torch.no_grad():
         for iter, batched_data in enumerate(val_dataloader):
@@ -133,19 +138,17 @@ def validate(
                 )
 
                 if cfg.multimask_output:
-                    # For each mask, get the mask with the highest stability score
                     separated_masks = torch.unbind(masks, dim=1)
                     separated_scores = torch.unbind(stability_scores, dim=1)
-
                     stability_score = [torch.mean(score) for score in separated_scores]
                     pred_masks.append(separated_masks[torch.argmax(torch.tensor(stability_score))])
-
                 else:
                     pred_masks.append(masks.squeeze(1))
 
             gt_masks = [data["gt_masks"] for data in batched_data]  
             num_images = len(batched_data)
-            # Calculate IoU for each image in the batch
+            
+            # Calcola IoU e Dice per ogni immagine nel batch
             for pred_mask, gt_mask in zip(pred_masks, gt_masks):
                 batch_stats = smp.metrics.get_stats(
                     pred_mask,
@@ -153,23 +156,28 @@ def validate(
                     mode='binary',
                     threshold=0.5,
                 )
+                
+                # Calcola IoU
                 batch_iou = smp.metrics.iou_score(*batch_stats, reduction="micro-imagewise")
                 ious.update(batch_iou, num_images)
+                
+                # Calcola Dice (F1 Score)
+                batch_dice = smp.metrics.f1_score(*batch_stats, reduction="micro-imagewise")
+                dices.update(batch_dice, num_images)
             
             fabric.print(
-                f'Val: [{epoch}] - [{iter+1}/{len(val_dataloader)}]: Mean IoU: [{ious.avg:.4f}]'
+                f'Val: [{epoch}] - [{iter+1}/{len(val_dataloader)}]:'
+                f' Mean IoU: [{ious.avg:.4f}] | Mean Dice: [{dices.avg:.4f}]'
             )
 
-        fabric.print(f'Validation [{epoch}]: Mean IoU: [{ious.avg:.4f}]')
-
-        if ious.avg > last_score:
-            last_score = ious.avg
-            save(fabric, model, cfg.sav_dir, "best")
+        fabric.print(
+            f'Validation [{epoch}]: Mean IoU: [{ious.avg:.4f}] | Mean Dice: [{dices.avg:.4f}]'
+        )
 
     model.train()
 
-    return last_score
-
+    # Rimuoviamo la logica di salvataggio da qui
+    return ious.avg, dices.avg
 
 def print_and_log_metrics(
     fabric: L.Fabric,
@@ -181,16 +189,7 @@ def print_and_log_metrics(
 ):
     """
     Print and log the metrics for the training.
-    
-    Args:
-        fabric (L.Fabric): The fabric object.
-        cfg (Box): The configuration file.
-        epoch (int): The current epoch.
-        iter (int): The current iteration.
-        metrics (Metrics): The metrics object.
-        train_dataloader (DataLoader): The training dataloader.
     """
-
     fabric.print(f'Epoch: [{epoch}][{iter+1}/{len(train_dataloader)}]'
                  f' | Time [{metrics.batch_time.val:.3f}s ({metrics.batch_time.avg:.3f}s)]'
                  f' | Data [{metrics.data_time.val:.3f}s ({metrics.data_time.avg:.3f}s)]'
@@ -199,51 +198,77 @@ def print_and_log_metrics(
                  f' | Space IoU Loss [{cfg.losses.iou_ratio * metrics.space_iou_losses.val:.4f} ({cfg.losses.iou_ratio * metrics.space_iou_losses.avg:.4f})]'
                  f' | Total Loss [{metrics.total_losses.val:.4f} ({metrics.total_losses.avg:.4f})]'
                  f' | IoU [{metrics.ious.val:.4f} ({metrics.ious.avg:.4f})]'
-                 f' | Pred IoU [{metrics.ious_pred.val:.4f} ({metrics.ious_pred.avg:.4f})]')
+                 f' | Pred IoU [{metrics.ious_pred.val:.4f} ({metrics.ious_pred.avg:.4f})]'
+                 # --- AGGIUNTO DICE SCORE ---
+                 f' | Dice Score [{metrics.dices.val:.4f} ({metrics.dices.avg:.4f})]'
+                )
     steps = epoch * len(train_dataloader) + iter
     log_info = {
         'total loss': metrics.total_losses.val,
         'focal loss': cfg.losses.focal_ratio * metrics.focal_losses.val,
         'dice loss':  cfg.losses.dice_ratio * metrics.dice_losses.val,
+        'iou loss':   cfg.losses.iou_ratio * metrics.space_iou_losses.val,
+        'train_iou':  metrics.ious.val,
+        'train_dice': metrics.dices.val, # <-- AGGIUNTO
     }
     fabric.log_dict(log_info, step=steps)
 
 
+# --- FUNZIONE 'print_graphs' COMPLETAMENTE RISCRITTA ---
 def print_graphs(
-        metrics: dict[list],
+        metrics_history: Dict[str, list],
         out_plots: str
     ):
     """
-    Print the graphs for the metrics.
+    Stampa i grafici di andamento per loss e metriche.
     
     Args:
-        metrics (dict[list]): The metrics to plot.
-        out_plots (str): The output directory for the plots.
+        metrics_history (Dict[str, list]): Dizionario con la storia delle metriche.
+        out_plots (str): Cartella dove salvare i grafici.
     """
-    metric_names = ["dice_loss", "focal_loss", "space_iou_loss", "total_loss", "iou", "iou_pred"]
+    
+    # Assicurati che ci sia almeno un punto dati
+    if not metrics_history["epochs"]:
+        return
 
-    for metric_name in metric_names:
-        plt.figure(figsize=(10, 6))
-        plt.plot(metrics[metric_name], label=metric_name.capitalize())
-        plt.title(metric_name.capitalize())
-        plt.savefig(os.path.join(out_plots, f"{metric_name}.png"))
-        plt.clf()
-      
-    plt.figure(figsize=(10, 6))
+    epochs = metrics_history["epochs"]
 
-    for metric_name in metric_names:
-        if metric_name != "total_loss":
-            plt.plot(metrics[metric_name], label=metric_name.capitalize())
-    plt.title("All Metrics")
-    plt.xlabel('Epoch')
-    plt.ylabel('Value')
-    plt.legend(bbox_to_anchor=(1.28, 1), title='Left Axis')
+    # --- Grafico 1: Training Losses ---
+    fig_loss, ax_loss = plt.subplots(figsize=(12, 7))
+    
+    ax_loss.plot(epochs, metrics_history["total_loss"], label="Total Loss", color='black', linewidth=2)
+    ax_loss.plot(epochs, metrics_history["focal_loss"], label="Focal Loss", linestyle='--')
+    ax_loss.plot(epochs, metrics_history["dice_loss"], label="Dice Loss", linestyle='--')
+    ax_loss.plot(epochs, metrics_history["iou_loss"], label="IoU Loss", linestyle='--')
+    
+    ax_loss.set_title("Training Loss vs. Epochs")
+    ax_loss.set_xlabel("Epoch")
+    ax_loss.set_ylabel("Loss")
+    ax_loss.legend()
+    ax_loss.grid(True)
+    
+    fig_loss.savefig(os.path.join(out_plots, "losses.png"), bbox_inches='tight')
+    plt.close(fig_loss)
 
-    plt2 = plt.gca().twinx()
-    plt2.plot(metrics["total_loss"], color='black', linestyle='--', label="Total Loss")
-    plt2.set_ylabel('Total Loss')
-    plt.legend(bbox_to_anchor=(1.28, 0.7), title='Right Axis')
+    # --- Grafico 2: Metrics (Train vs Val) ---
+    fig_metrics, ax_metrics = plt.subplots(figsize=(12, 7))
 
-    plt.savefig(os.path.join(out_plots, "all_metrics.png"), bbox_inches='tight')
-    plt.clf()
+    # IoU
+    ax_metrics.plot(epochs, metrics_history["train_iou"], label="Train IoU", color='blue', linestyle='-')
+    ax_metrics.plot(epochs, metrics_history["val_iou"], label="Validation IoU", color='blue', linestyle='--')
+    
+    # Dice Score
+    ax_metrics.plot(epochs, metrics_history["train_dsc"], label="Train Dice", color='green', linestyle='-')
+    ax_metrics.plot(epochs, metrics_history["val_dsc"], label="Validation Dice", color='green', linestyle='--')
+
+    ax_metrics.set_title("Metrics vs. Epochs")
+    ax_metrics.set_xlabel("Epoch")
+    ax_metrics.set_ylabel("Score")
+    ax_metrics.legend()
+    ax_metrics.grid(True)
+    
+    fig_metrics.savefig(os.path.join(out_plots, "metrics.png"), bbox_inches='tight')
+    plt.close(fig_metrics)
+    
+    # Chiudi tutto per sicurezza
     plt.close('all')

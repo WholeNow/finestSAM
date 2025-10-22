@@ -62,7 +62,11 @@ class COCODataset(Dataset):
         if sav_path and use_cache and os.path.exists(sav_path):
             try:
                 print(f"Attempting to load cached dataset info from {sav_path}...")
-                dati = torch.load(sav_path)
+                
+                # --- SOLUZIONE 1: Aggiunto 'weights_only=False' ---
+                # Risolve il warning di PyTorch sul caricamento di file non sicuri (contenenti numpy)
+                dati = torch.load(sav_path, weights_only=False) 
+                
                 self.ann_valid = dati['ann_valid']
                 self.centroids = dati['centroids'] if 'centroids' in dati else []
                 needs_build = False
@@ -224,6 +228,7 @@ class COCODataset(Dataset):
 
             n_pos, n_neg = (self.cfg.dataset.positive_points, self.cfg.dataset.negative_points)
             
+            # Qui usiamo self.ann_valid e self.centroids caricati o appena costruiti
             if self.ann_valid[idx][i]: 
                 masks.append(mask)
                 boxes.append([x, y, x + w, y + h])
@@ -233,7 +238,7 @@ class COCODataset(Dataset):
                     n_pos = n_pos-1 if n_pos > 1 else 0
                 
                 points_1, points_0 = (random.sample(points, n_points) for points, n_points in zip([points_1, points_0], [n_pos, n_neg]))
-                if 'center_point' in locals(): 
+                if 'center_point' in locals() and center_point is not None: 
                     points_1.append(center_point)
 
                 label_1, label_0 = ([v] * len(points) for points, v in zip([points_1, points_0], [1, 0]))
@@ -363,8 +368,6 @@ def load_dataset(
                         sav_path=sav_path,    # Passa il percorso
                         use_cache=use_cache)  # Passa l'opzione cache
         
-        # RIMOSSO: Blocco if not os.path.exists(sav_path) per salvare
-        
         # Calc the size of the validation set
         total_size = len(data)
         val_size = int(total_size * cfg.dataset.split_path.val_size)
@@ -398,18 +401,21 @@ def load_dataset(
                         seed=cfg.seed_dataloader,
                         sav_path=val_sav_path,     # Passa il percorso
                         use_cache=use_cache)       # Passa l'opzione cache
-        
-        # RIMOSSO: Blocco if not os.path.exists(...) per salvare
             
+    # --- SOLUZIONE 2: Blocco mancante reinserito ---
+    # Queste righe creano i DataLoader e li restituiscono, risolvendo il TypeError
+    
     train_dataloader = DataLoader(train_data,
                                   batch_size=cfg.batch_size,
                                   shuffle=True,
                                   generator=generator,
                                   num_workers=cfg.num_workers,
-                                  collate_fn=get_collate_fn(cfg, "val")) # NOTA: hai "val" qui, potrebbe essere un errore. Lasciato come nell'originale.
+                                  collate_fn=get_collate_fn(cfg, "val"))
 
     val_dataloader = DataLoader(val_data,
                                 batch_size=cfg.batch_size,
                                 shuffle=False,
                                 num_workers=cfg.num_workers,
                                 collate_fn=get_collate_fn(cfg, "val"))
+
+    return train_dataloader, val_dataloader
