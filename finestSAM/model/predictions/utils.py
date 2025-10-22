@@ -112,14 +112,11 @@ def show_predictions(
     if len(gt_masks.shape) == 4:  # [B, C, H, W]
         for i in range(gt_masks.shape[1]):
             show_mask(gt_masks[0, i] > 0, axes[1], random_color=True, seed=i+color_seed)
-        print("qui 1")
     elif len(gt_masks.shape) == 3:  # [C, H, W]
         for i in range(gt_masks.shape[0]):
             show_mask(gt_masks[i] > 0, axes[1], random_color=True, seed=i+color_seed)
-        print("qui 2")
     else:  # [H, W]
         show_mask(gt_masks > 0, axes[1], random_color=True, seed=color_seed)
-        print("qui 3")
     
     axes[1].axis('off')
     
@@ -137,14 +134,11 @@ def show_predictions(
         for i in range(pred_masks.shape[1]):
             # Add offset to seed to ensure different colors from ground truth
             show_mask(pred_masks[0, i] > 0, axes[2], random_color=True, seed=i+color_seed)
-        print("qui 1.1")
     elif len(pred_masks.shape) == 3:  # [C, H, W]
         for i in range(pred_masks.shape[0]):
             show_mask(pred_masks[i] > 0, axes[2], random_color=True, seed=i+color_seed)
-        print("qui 2.2")
     else:  # [H, W]
         show_mask(pred_masks > 0, axes[2], random_color=True, seed=color_seed)
-        print("qui 3.3")
     
     axes[2].axis('off')
     

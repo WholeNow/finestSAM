@@ -20,7 +20,7 @@ config_train = {
     "num_workers": 0,
 
     "num_epochs": 500,
-    "eval_interval": 100,
+    "eval_interval": 3,
     "prompts": {
         "use_boxes": False,
         "use_points": True,
@@ -69,12 +69,13 @@ config_train = {
     "dataset": {
         "auto_split": True,
         "seed": 42,
+        "use_cache": True, # se true utilizza il sav se presente nelle cartelle
         "split_path": {
-            "root_dir": "../dataset",
+            "root_dir": "../dataset4img",
             "images_dir": "images",
             "annotation_file": "annotations.json",
             "sav": "sav.pth", # Remove old saves on setting changes
-            "val_size": 0.2,
+            "val_size": 0.3,
         },
         "no_split_path": {
             "train": {

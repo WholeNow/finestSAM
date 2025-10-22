@@ -27,7 +27,8 @@ class COCODataset(Dataset):
             cfg: Box,
             transform: transforms.Compose = None, 
             seed: int = None,
-            sav: str = None,
+            sav_path: str = None,  # Modificato da 'sav'
+            use_cache: bool = True  # Nuovo parametro
         ):
         """
         Args:
@@ -36,7 +37,8 @@ class COCODataset(Dataset):
             cfg (Box): The configuration file.
             transform (transforms.Compose): The transformation to apply to the data.
             seed (int): The seed for the random number generator.
-            sav (str): The path to the file where the data is saved.
+            sav_path (str): The path to the file where the data is saved/loaded from.
+            use_cache (bool): Whether to use the saved data if it exists.
         """
         self.cfg = cfg
         self.seed = seed
@@ -52,13 +54,31 @@ class COCODataset(Dataset):
         self.points_1 = []
         self.points_0 = []
         self.masks = []
-        if sav:
-            dati = torch.load(sav)
-            self.ann_valid = dati['ann_valid']
-            if self.cfg.dataset.use_center: self.centroids = dati['centroids']
-        else:         
-            self.ann_valid = []
-            if self.cfg.dataset.use_center: self.centroids = []
+        self.ann_valid = []
+        self.centroids = []
+
+        # --- Inizio Logica di Caching Rifactorizzata ---
+        needs_build = True
+        if sav_path and use_cache and os.path.exists(sav_path):
+            try:
+                print(f"Attempting to load cached dataset info from {sav_path}...")
+                dati = torch.load(sav_path)
+                self.ann_valid = dati['ann_valid']
+                self.centroids = dati['centroids'] if 'centroids' in dati else []
+                needs_build = False
+                print("Cached data loaded successfully.")
+            except Exception as e:
+                print(f"Warning: Failed to load cache from {sav_path}. Rebuilding... Error: {e}")
+                needs_build = True
+        
+        if not use_cache and sav_path:
+            print("`use_cache` is False. Forcing dataset info rebuild.")
+            
+        if needs_build:
+            print("Building dataset info (ann_valid, centroids)...")
+        else:
+            print("Loading dataset (points, masks)...")
+        # --- Fine Logica di Caching Rifactorizzata ---
 
         # Calculate the main data for each image
         bar = tqdm.tqdm(total = len(self.image_ids), desc = "Uploading dataset...", leave=False)
@@ -73,11 +93,13 @@ class COCODataset(Dataset):
             masks = []
             points_0 = []
             points_1 = []
-            if not sav:
-                centroids = []
-                ann_valid = []
+            
+            # Liste temporanee per immagine se stiamo costruendo il cache
+            if needs_build:
+                centroids_img = []
+                ann_valid_img = []
 
-            for ann in anns:
+            for i, ann in enumerate(anns):
                 # Get the bounding box
                 x, y, w, h = ann['bbox']
 
@@ -92,7 +114,7 @@ class COCODataset(Dataset):
                 points_1.append(list_points_1)
                 points_0.append(list_points_0)
 
-                if not sav:
+                if needs_build:
                     center_point = None
                     n_pos, n_neg = (self.cfg.dataset.positive_points, self.cfg.dataset.negative_points)
                     is_valid = len(list_points_1) >= n_pos and len(list_points_0) >= n_neg
@@ -113,18 +135,33 @@ class COCODataset(Dataset):
                                 nearest_point_index = np.argmin(distances)
                                 center_point = automatic_grid[nearest_point_index]
                     
-                    ann_valid.append(is_valid)
-                    if self.cfg.dataset.use_center: centroids.append(center_point)
+                    ann_valid_img.append(is_valid)
+                    if self.cfg.dataset.use_center: centroids_img.append(center_point)
         
             # Append the data for the image
             self.points_1.append(points_1)
             self.points_0.append(points_0)
             self.masks.append(masks)
-            if not sav:
-                self.ann_valid.append(ann_valid)
-                if self.cfg.dataset.use_center: self.centroids.append(centroids)
+            if needs_build:
+                self.ann_valid.append(ann_valid_img)
+                if self.cfg.dataset.use_center: self.centroids.append(centroids_img)
 
             bar.update(1)
+            
+        # --- Logica di Salvataggio Rifactorizzata ---
+        if needs_build and sav_path:
+            try:
+                print(f"Saving dataset info to {sav_path}...")
+                save_data = {
+                    'ann_valid': self.ann_valid,
+                    'centroids': self.centroids
+                }
+                torch.save(save_data, sav_path)
+                print("Dataset info saved successfully.")
+            except Exception as e:
+                print(f"Warning: Failed to save cache to {sav_path}. Error: {e}")
+        # --- Fine Logica di Salvataggio Rifactorizzata ---
+
 
     def __len__(self):
         return len(self.image_ids)
@@ -308,6 +345,9 @@ def load_dataset(
 
     # Load the dataset
     main_directory = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    
+    # Ottieni l'impostazione del cache, con True come default se non specificato
+    use_cache = cfg.dataset.get("use_cache", True)
 
     if cfg.dataset.auto_split:
         data_root_path = os.path.join(main_directory, cfg.dataset.split_path.root_dir)
@@ -320,15 +360,10 @@ def load_dataset(
                         cfg=cfg,
                         transform=transform,
                         seed=cfg.seed_dataloader,
-                        sav=(sav_path if os.path.exists(sav_path) else None))
+                        sav_path=sav_path,    # Passa il percorso
+                        use_cache=use_cache)  # Passa l'opzione cache
         
-        if not os.path.exists(sav_path):
-            save_data = {
-                'ann_valid': data.ann_valid,
-                'centroids': data.centroids if hasattr(data, 'centroids') else None
-            }
-            torch.save(save_data, sav_path)
-            print("Dataset saved")
+        # RIMOSSO: Blocco if not os.path.exists(sav_path) per salvare
         
         # Calc the size of the validation set
         total_size = len(data)
@@ -353,39 +388,28 @@ def load_dataset(
                         cfg=cfg,
                         transform=transform,
                         seed=cfg.seed_dataloader,
-                        sav=(train_sav_path if os.path.exists(train_sav_path) else None))
+                        sav_path=train_sav_path,   # Passa il percorso
+                        use_cache=use_cache)     # Passa l'opzione cache
     
         val_data = COCODataset(images_dir=val_path,
                         annotation_file=val_annotations_path,
                         cfg=cfg,
                         transform=transform,
                         seed=cfg.seed_dataloader,
-                        sav=(val_sav_path if os.path.exists(val_sav_path) else None))
+                        sav_path=val_sav_path,     # Passa il percorso
+                        use_cache=use_cache)       # Passa l'opzione cache
         
-        if not os.path.exists(train_sav_path) or not os.path.exists(val_sav_path):
-            train_save_data = {
-                'ann_valid': train_data.ann_valid,
-                'centroids': train_data.centroids if hasattr(train_data, 'centroids') else None
-            }
-            val_save_data = {
-                'ann_valid': val_data.ann_valid,
-                'centroids': val_data.centroids if hasattr(val_data, 'centroids') else None
-            }
-            torch.save(train_save_data, train_sav_path)
-            torch.save(val_save_data, val_sav_path)
-            print("Dataset saved")
-
+        # RIMOSSO: Blocco if not os.path.exists(...) per salvare
+            
     train_dataloader = DataLoader(train_data,
                                   batch_size=cfg.batch_size,
                                   shuffle=True,
                                   generator=generator,
                                   num_workers=cfg.num_workers,
-                                  collate_fn=get_collate_fn(cfg, "val"))
+                                  collate_fn=get_collate_fn(cfg, "val")) # NOTA: hai "val" qui, potrebbe essere un errore. Lasciato come nell'originale.
 
     val_dataloader = DataLoader(val_data,
                                 batch_size=cfg.batch_size,
                                 shuffle=False,
                                 num_workers=cfg.num_workers,
                                 collate_fn=get_collate_fn(cfg, "val"))
-
-    return train_dataloader, val_dataloader
