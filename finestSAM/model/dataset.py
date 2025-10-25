@@ -27,8 +27,8 @@ class COCODataset(Dataset):
             cfg: Box,
             transform: transforms.Compose = None, 
             seed: int = None,
-            sav_path: str = None,  # Modificato da 'sav'
-            use_cache: bool = True  # Nuovo parametro
+            sav_path: str = None,
+            use_cache: bool = True 
         ):
         """
         Args:
@@ -57,18 +57,14 @@ class COCODataset(Dataset):
         self.ann_valid = []
         self.centroids = []
 
-        # --- Inizio Logica di Caching Rifactorizzata ---
         needs_build = True
         if sav_path and use_cache and os.path.exists(sav_path):
             try:
                 print(f"Attempting to load cached dataset info from {sav_path}...")
-                
-                # --- SOLUZIONE 1: Aggiunto 'weights_only=False' ---
-                # Risolve il warning di PyTorch sul caricamento di file non sicuri (contenenti numpy)
-                dati = torch.load(sav_path, weights_only=False) 
-                
-                self.ann_valid = dati['ann_valid']
-                self.centroids = dati['centroids'] if 'centroids' in dati else []
+                data = torch.load(sav_path, weights_only=False)
+
+                self.ann_valid = data['ann_valid']
+                self.centroids = data['centroids'] if 'centroids' in data else []
                 needs_build = False
                 print("Cached data loaded successfully.")
             except Exception as e:
@@ -82,7 +78,6 @@ class COCODataset(Dataset):
             print("Building dataset info (ann_valid, centroids)...")
         else:
             print("Loading dataset (points, masks)...")
-        # --- Fine Logica di Caching Rifactorizzata ---
 
         # Calculate the main data for each image
         bar = tqdm.tqdm(total = len(self.image_ids), desc = "Uploading dataset...", leave=False)
@@ -98,7 +93,6 @@ class COCODataset(Dataset):
             points_0 = []
             points_1 = []
             
-            # Liste temporanee per immagine se stiamo costruendo il cache
             if needs_build:
                 centroids_img = []
                 ann_valid_img = []
@@ -152,7 +146,6 @@ class COCODataset(Dataset):
 
             bar.update(1)
             
-        # --- Logica di Salvataggio Rifactorizzata ---
         if needs_build and sav_path:
             try:
                 print(f"Saving dataset info to {sav_path}...")
@@ -164,7 +157,6 @@ class COCODataset(Dataset):
                 print("Dataset info saved successfully.")
             except Exception as e:
                 print(f"Warning: Failed to save cache to {sav_path}. Error: {e}")
-        # --- Fine Logica di Salvataggio Rifactorizzata ---
 
 
     def __len__(self):
@@ -228,7 +220,6 @@ class COCODataset(Dataset):
 
             n_pos, n_neg = (self.cfg.dataset.positive_points, self.cfg.dataset.negative_points)
             
-            # Qui usiamo self.ann_valid e self.centroids caricati o appena costruiti
             if self.ann_valid[idx][i]: 
                 masks.append(mask)
                 boxes.append([x, y, x + w, y + h])
@@ -351,9 +342,6 @@ def load_dataset(
     # Load the dataset
     main_directory = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     
-    # Ottieni l'impostazione del cache, con True come default se non specificato
-    use_cache = cfg.dataset.get("use_cache", True)
-
     if cfg.dataset.auto_split:
         data_root_path = os.path.join(main_directory, cfg.dataset.split_path.root_dir)
         data_path = os.path.join(data_root_path, cfg.dataset.split_path.images_dir)
@@ -365,8 +353,8 @@ def load_dataset(
                         cfg=cfg,
                         transform=transform,
                         seed=cfg.seed_dataloader,
-                        sav_path=sav_path,    # Passa il percorso
-                        use_cache=use_cache)  # Passa l'opzione cache
+                        sav_path=sav_path,
+                        use_cache=cfg.dataset.use_cache)
         
         # Calc the size of the validation set
         total_size = len(data)
@@ -391,26 +379,23 @@ def load_dataset(
                         cfg=cfg,
                         transform=transform,
                         seed=cfg.seed_dataloader,
-                        sav_path=train_sav_path,   # Passa il percorso
-                        use_cache=use_cache)     # Passa l'opzione cache
-    
+                        sav_path=train_sav_path,
+                        use_cache=cfg.dataset.use_cache)
+
         val_data = COCODataset(images_dir=val_path,
                         annotation_file=val_annotations_path,
                         cfg=cfg,
                         transform=transform,
                         seed=cfg.seed_dataloader,
-                        sav_path=val_sav_path,     # Passa il percorso
-                        use_cache=use_cache)       # Passa l'opzione cache
-            
-    # --- SOLUZIONE 2: Blocco mancante reinserito ---
-    # Queste righe creano i DataLoader e li restituiscono, risolvendo il TypeError
+                        sav_path=val_sav_path,
+                        use_cache=cfg.dataset.use_cache)
     
     train_dataloader = DataLoader(train_data,
                                   batch_size=cfg.batch_size,
                                   shuffle=True,
                                   generator=generator,
                                   num_workers=cfg.num_workers,
-                                  collate_fn=get_collate_fn(cfg, "val"))
+                                  collate_fn=get_collate_fn(cfg, "train"))
 
     val_dataloader = DataLoader(val_data,
                                 batch_size=cfg.batch_size,
@@ -419,3 +404,6 @@ def load_dataset(
                                 collate_fn=get_collate_fn(cfg, "val"))
 
     return train_dataloader, val_dataloader
+
+
+# add comments to explain the transform ResizeData

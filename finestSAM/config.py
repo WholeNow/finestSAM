@@ -69,11 +69,12 @@ config_train = {
     "dataset": {
         "auto_split": True,
         "seed": 42,
+        "use_cache": True,
         "split_path": {
             "root_dir": "../dataset4img",
             "images_dir": "images",
             "annotation_file": "annotations.json",
-            "sav": "sav.pth", # Remove old saves on setting changes
+            "sav": "sav.pth",
             "val_size": 0.3,
         },
         "no_split_path": {
@@ -81,13 +82,13 @@ config_train = {
                 "root_dir": "../dataset/train",
                 "images_dir": "images",
                 "annotation_file": "annotations.json",
-                "sav": "sav.pth" # Remove old saves on setting changes
+                "sav": "sav.pth"
             },
             "val": {
                 "root_dir": "../dataset/val",
                 "images_dir": "images",
                 "annotation_file": "annotations.json",
-                "sav": "sav.pth" # Remove old saves on setting changes
+                "sav": "sav.pth"
             },
         },
         "positive_points": 1,

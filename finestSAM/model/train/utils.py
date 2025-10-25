@@ -4,7 +4,7 @@ import lightning as L
 import matplotlib.pyplot as plt
 import segmentation_models_pytorch as smp
 from box import Box
-from typing import Tuple
+from typing import Tuple, Dict
 from torch.utils.data import DataLoader
 from lightning.fabric.fabric import _FabricOptimizer
 from ..model import FinestSAM
@@ -41,7 +41,8 @@ class Metrics:
 
         self.ious = AverageMeter()
         self.ious_pred = AverageMeter()
-        self.dices = AverageMeter()
+        self.dsc = AverageMeter()
+# CREARE UN PICCOLO PROSPETTO PER INDICARE COSA INDICA OGNI METRICA/VALORE
 
 
 def configure_opt(cfg: Box, model: FinestSAM) -> Tuple[_FabricOptimizer, _FabricOptimizer]:
@@ -104,9 +105,8 @@ def validate(
         epoch: int
     ) -> Tuple[float, float]: 
     """
-    Validation function for the SAM model.
-    Calcola sia IoU che Dice Score.
-    NON salva più i checkpoint, restituisce solo le metriche.
+    Validation function
+    Computes IoU and Dice Score (F1 Score) for the validation dataset.
 
     Args:
         fabric (L.Fabric): The lightning fabric.
@@ -120,13 +120,14 @@ def validate(
     """
     model.eval()
     ious = AverageMeter()
-    dices = AverageMeter() # <-- AGGIUNTO
+    dsc = AverageMeter()
     
     with torch.no_grad():
         for iter, batched_data in enumerate(val_dataloader):
 
             predictor = model.get_predictor()
             
+            # Generate predictions for each image in the batch
             pred_masks = []
             for data in batched_data:
                 predictor.set_image(data["original_image"])
@@ -138,8 +139,10 @@ def validate(
                 )
 
                 if cfg.multimask_output:
+                    # For each mask, get the mask with the highest stability score
                     separated_masks = torch.unbind(masks, dim=1)
                     separated_scores = torch.unbind(stability_scores, dim=1)
+
                     stability_score = [torch.mean(score) for score in separated_scores]
                     pred_masks.append(separated_masks[torch.argmax(torch.tensor(stability_score))])
                 else:
@@ -148,7 +151,7 @@ def validate(
             gt_masks = [data["gt_masks"] for data in batched_data]  
             num_images = len(batched_data)
             
-            # Calcola IoU e Dice per ogni immagine nel batch
+            # Compute IoU and Dice for each image in the batch
             for pred_mask, gt_mask in zip(pred_masks, gt_masks):
                 batch_stats = smp.metrics.get_stats(
                     pred_mask,
@@ -156,28 +159,25 @@ def validate(
                     mode='binary',
                     threshold=0.5,
                 )
-                
-                # Calcola IoU
+
                 batch_iou = smp.metrics.iou_score(*batch_stats, reduction="micro-imagewise")
                 ious.update(batch_iou, num_images)
                 
-                # Calcola Dice (F1 Score)
                 batch_dice = smp.metrics.f1_score(*batch_stats, reduction="micro-imagewise")
-                dices.update(batch_dice, num_images)
+                dsc.update(batch_dice, num_images)
             
             fabric.print(
                 f'Val: [{epoch}] - [{iter+1}/{len(val_dataloader)}]:'
-                f' Mean IoU: [{ious.avg:.4f}] | Mean Dice: [{dices.avg:.4f}]'
+                f' Mean IoU: [{ious.avg:.4f}] | Mean DSC: [{dsc.avg:.4f}]'
             )
 
         fabric.print(
-            f'Validation [{epoch}]: Mean IoU: [{ious.avg:.4f}] | Mean Dice: [{dices.avg:.4f}]'
+            f'Validation [{epoch}]: Mean IoU: [{ious.avg:.4f}] | Mean DSC: [{dsc.avg:.4f}]'
         )
 
     model.train()
 
-    # Rimuoviamo la logica di salvataggio da qui
-    return ious.avg, dices.avg
+    return ious.avg, dsc.avg
 
 def print_and_log_metrics(
     fabric: L.Fabric,
@@ -199,8 +199,7 @@ def print_and_log_metrics(
                  f' | Total Loss [{metrics.total_losses.val:.4f} ({metrics.total_losses.avg:.4f})]'
                  f' | IoU [{metrics.ious.val:.4f} ({metrics.ious.avg:.4f})]'
                  f' | Pred IoU [{metrics.ious_pred.val:.4f} ({metrics.ious_pred.avg:.4f})]'
-                 # --- AGGIUNTO DICE SCORE ---
-                 f' | Dice Score [{metrics.dices.val:.4f} ({metrics.dices.avg:.4f})]'
+                 f' | DSC [{metrics.dsc.val:.4f} ({metrics.dsc.avg:.4f})]'
                 )
     steps = epoch * len(train_dataloader) + iter
     log_info = {
@@ -209,66 +208,173 @@ def print_and_log_metrics(
         'dice loss':  cfg.losses.dice_ratio * metrics.dice_losses.val,
         'iou loss':   cfg.losses.iou_ratio * metrics.space_iou_losses.val,
         'train_iou':  metrics.ious.val,
-        'train_dice': metrics.dices.val, # <-- AGGIUNTO
+        'train_dsc': metrics.dsc.val,
     }
     fabric.log_dict(log_info, step=steps)
 
 
-# --- FUNZIONE 'print_graphs' COMPLETAMENTE RISCRITTA ---
-def print_graphs(
+def plot_history(
         metrics_history: Dict[str, list],
-        out_plots: str
+        out_plots: str,
+        name: str = "log"
     ):
-    """
-    Stampa i grafici di andamento per loss e metriche.
-    
+    """Plots and saves training history graphs for losses and metrics.
+
+    Generates a figure with three side-by-side subplots:
+    1. Losses (total, focal, dice, IoU) with an automatic Y-axis.
+    2. IoU (Train/Validation) with a shared Y-axis.
+    3. Dice Score (Train/Validation) with a shared Y-axis.
+
+    The IoU and Dice plots share the same Y-axis limits (from a calculated
+    minimum across both metrics up to 1.0) for direct comparison.
+
     Args:
-        metrics_history (Dict[str, list]): Dizionario con la storia delle metriche.
-        out_plots (str): Cartella dove salvare i grafici.
+        metrics_history (Dict[str, list]): A dictionary containing the history 
+            of metrics. Expected keys include 'epochs', 'total_loss', 
+            'focal_loss', 'dice_loss', 'iou_loss', 'train_iou', 'val_iou', 
+            'train_dsc', 'val_dsc'.
+        out_plots (str): The path to the output directory where the
+            '{name}.png' file will be saved.
+        name (str): The base name for the saved plot file (without extension).
+
+    Side Effects:
+        - Saves a PNG image ('{name}.png') to the `out_plots`
+          directory.
+        - Prints error messages to stderr if 'epochs' data is missing or empty.
+        - Prints a warning to stderr if the 'serif' font cannot be set.
     """
     
-    # Assicurati che ci sia almeno un punto dati
-    if not metrics_history["epochs"]:
+    # --- Data Validation ---
+    # Ensure at least one data point exists
+    if not metrics_history.get("epochs"):
+        print("Error: No 'epochs' data found in metrics_history.", file=sys.stderr)
         return
-
+    
     epochs = metrics_history["epochs"]
+    if not epochs:
+        print("Error: The 'epochs' list is empty.", file=sys.stderr)
+        return
+    
+    max_epoch = epochs[-1]
 
-    # --- Grafico 1: Training Losses ---
-    fig_loss, ax_loss = plt.subplots(figsize=(12, 7))
+    # --- Global Style Settings ---
+    try:
+        plt.rc('font', family='serif')
+    except Exception as e:
+        print(f"Warning: Could not set 'serif' font. Using default. Details: {e}", file=sys.stderr)
+        
+    plt.rcParams.update({
+        'font.size': 20,
+        'axes.titlesize': 24,
+        'axes.labelsize': 22,
+        'xtick.labelsize': 20,
+        'ytick.labelsize': 20,
+        'legend.fontsize': 18, 
+        'axes.titleweight': 'bold'
+    })
+
+    # --- Create the Figure with 3 side-by-side Subplots ---
+    fig, (ax_loss, ax_iou, ax_dsc) = plt.subplots(1, 3, figsize=(33, 9)) 
     
-    ax_loss.plot(epochs, metrics_history["total_loss"], label="Total Loss", color='black', linewidth=2)
-    ax_loss.plot(epochs, metrics_history["focal_loss"], label="Focal Loss", linestyle='--')
-    ax_loss.plot(epochs, metrics_history["dice_loss"], label="Dice Loss", linestyle='--')
-    ax_loss.plot(epochs, metrics_history["iou_loss"], label="IoU Loss", linestyle='--')
+    colors = {
+        'total_loss': '#d62728',  # Red
+        'dice_loss': '#17becf',   # Cyan
+        'focal_loss': '#ff7f0e',  # Orange
+        'iou_loss': '#2ca02c',    # Green
+        'train_set': '#ff7f0e',   # Orange (for Train)
+        'val_set': '#1f77b4',     # Blue (for Val)
+    }
     
-    ax_loss.set_title("Training Loss vs. Epochs")
+    line_width = 2.5
+    # Common X-axis ticks
+    ticks = [1] + list(range(25, max_epoch + 1, 25)) 
+
+    # --- Plot 1: Training Losses (Left) ---
+    
+    ax_loss.plot(epochs, metrics_history["total_loss"], label="Total Loss", 
+                 color=colors['total_loss'], linestyle='-', linewidth=line_width)
+    ax_loss.plot(epochs, metrics_history["focal_loss"], label="Focal Loss", 
+                 color=colors['focal_loss'], linestyle='-', linewidth=line_width)
+    ax_loss.plot(epochs, metrics_history["dice_loss"], label="Dice Loss", 
+                 color=colors['dice_loss'], linestyle='-', linewidth=line_width)
+    ax_loss.plot(epochs, metrics_history["iou_loss"], label="IoU Loss", 
+                 color=colors['iou_loss'], linestyle='-', linewidth=line_width)
+    
+    ax_loss.set_title("Loss", loc='left')
+    ax_loss.legend(loc='upper right', frameon=True, fancybox=True)
     ax_loss.set_xlabel("Epoch")
-    ax_loss.set_ylabel("Loss")
-    ax_loss.legend()
-    ax_loss.grid(True)
-    
-    fig_loss.savefig(os.path.join(out_plots, "losses.png"), bbox_inches='tight')
-    plt.close(fig_loss)
+    ax_loss.set_ylabel("Value")
+    ax_loss.grid(False)
+    ax_loss.set_xticks(ticks)
+    ax_loss.set_xlim(left=1, right=max_epoch)
+    # Automatic Y-scale
 
-    # --- Grafico 2: Metrics (Train vs Val) ---
-    fig_metrics, ax_metrics = plt.subplots(figsize=(12, 7))
+    # --- Metrics Data ---
+    train_iou_data = metrics_history["train_iou"]
+    val_iou_data = metrics_history["val_iou"]
+    train_dsc_data = metrics_history["train_dsc"]
+    val_dsc_data = metrics_history["val_dsc"]
+    
+    # --- Calculate shared Y-axis limits for metrics ---
+    # Calculate the absolute minimum across ALL 4 metric lists
+    min_metric_val = min(
+        min(train_iou_data), 
+        min(val_iou_data), 
+        min(train_dsc_data), 
+        min(val_dsc_data)
+    )
+    # Round down to the nearest 0.1 and add 0.05 padding
+    shared_lower_lim = max(0, math.floor(min_metric_val * 10) / 10 - 0.05)
+    shared_upper_lim = 1.0 # Fixed upper limit at 1.0
 
-    # IoU
-    ax_metrics.plot(epochs, metrics_history["train_iou"], label="Train IoU", color='blue', linestyle='-')
-    ax_metrics.plot(epochs, metrics_history["val_iou"], label="Validation IoU", color='blue', linestyle='--')
-    
-    # Dice Score
-    ax_metrics.plot(epochs, metrics_history["train_dsc"], label="Train Dice", color='green', linestyle='-')
-    ax_metrics.plot(epochs, metrics_history["val_dsc"], label="Validation Dice", color='green', linestyle='--')
 
-    ax_metrics.set_title("Metrics vs. Epochs")
-    ax_metrics.set_xlabel("Epoch")
-    ax_metrics.set_ylabel("Score")
-    ax_metrics.legend()
-    ax_metrics.grid(True)
+    # --- Plot 2: IoU (Center) ---
     
-    fig_metrics.savefig(os.path.join(out_plots, "metrics.png"), bbox_inches='tight')
-    plt.close(fig_metrics)
+    ax_iou.plot(epochs, train_iou_data, label="Train IoU", 
+                color=colors['train_set'], linestyle='-', linewidth=line_width)
+    ax_iou.plot(epochs, val_iou_data, label="Val IoU", 
+                color=colors['val_set'], linestyle='-', linewidth=line_width)
+
+    ax_iou.set_title("IoU", loc='left')
+    ax_iou.legend(loc='lower right', frameon=True, fancybox=True)
+    ax_iou.set_xlabel("Epoch")
+    ax_iou.set_ylabel("Value")
+    ax_iou.grid(False)
+    ax_iou.set_xticks(ticks)
+    ax_iou.set_xlim(left=1, right=max_epoch)
     
-    # Chiudi tutto per sicurezza
-    plt.close('all')
+    # Apply shared Y-scale
+    ax_iou.set_ylim(shared_lower_lim, shared_upper_lim) 
+
+
+    # --- Plot 3: Dice Score (Right) ---
+    
+    ax_dsc.plot(epochs, train_dsc_data, label="Train DSC", 
+                color=colors['train_set'], linestyle='-', linewidth=line_width)
+    ax_dsc.plot(epochs, val_dsc_data, label="Val DSC", 
+                color=colors['val_set'], linestyle='-', linewidth=line_width)
+
+    ax_dsc.set_title("DSC", loc='left')
+    ax_dsc.legend(loc='lower right', frameon=True, fancybox=True)
+    ax_dsc.set_xlabel("Epoch")
+    ax_dsc.set_ylabel("Value")
+    ax_dsc.grid(False)
+    ax_dsc.set_xticks(ticks)
+    ax_dsc.set_xlim(left=1, right=max_epoch)
+    
+    # Apply shared Y-scale
+    ax_dsc.set_ylim(shared_lower_lim, shared_upper_lim)
+
+    # --- Save Figure ---
+    
+    fig.tight_layout() 
+    output_filename = os.path.join(out_plots, f"{name}.png")
+    
+    try:
+        fig.savefig(output_filename, bbox_inches='tight', dpi=300)
+        print(f"Combined plots saved to: {output_filename}")
+    except Exception as e:
+        print(f"Error saving plot file: {e}", file=sys.stderr)
+    
+    plt.close(fig)
+    plt.rcdefaults()

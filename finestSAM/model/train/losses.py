@@ -78,6 +78,9 @@ class FocalLoss(nn.Module):
         return loss.mean(1).sum() / num_masks
     
 
+# Metrics 
+# (now in the code are used segmentation_models_pytorch library, but we can use these implementations if needed)
+
 class CalcIoU(nn.Module):
 
     def __init__(self, smooth: int = 1e-7):
@@ -104,10 +107,9 @@ class CalcIoU(nn.Module):
         iou = (intersection + self.smooth) / (union + self.smooth)
 
         return iou
-    
-# In losses.py, aggiungi questa nuova classe
 
-class CalcDice(nn.Module):
+
+class CalcDSC(nn.Module):
 
     def __init__(self, smooth: int = 1e-7):
         super().__init__()
@@ -130,6 +132,6 @@ class CalcDice(nn.Module):
 
         intersection = (inputs * targets).sum(1)
         denominator = inputs.sum(1) + targets.sum(1)
-        dice = (2 * intersection + self.smooth) / (denominator + self.smooth)
-        
-        return dice
+        dsc = (2 * intersection + self.smooth) / (denominator + self.smooth)
+
+        return dsc
