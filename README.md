@@ -126,6 +126,7 @@ The hyperparameters required for the model are specified in the file [`finestSAM
 "dataset": {
     "auto_split": bool, # If True, splits the dataset for validation
     "seed": 42,
+    "use_cache": bool, # if True, attempt to load/save precomputed dataset metadata to sav_path
     "split_path": {
         "root_dir": str,
         "images_dir": str,
@@ -252,15 +253,15 @@ For this task, a single prompt was used during training: __1 central point per m
 </details>
 
 
-## Possible Additions
+## To-Do List
 
-- [ ] Training also working for the manual predictor:
+- [ ] Added a function to predict using the manual predictor
 
-    - [ ] Added a function to predict using the manual predictor
-
-    - [ ] Added a function to create the bounding boxes for training (suggestion on line 175 [finestSAM/model/dataset.py](https://github.com/Marchisceddu/finestSAM/blob/main/finestSAM/model/dataset.py))
+- [ ] Added a function to create the bounding boxes for training (suggestion on line 175 [finestSAM/model/dataset.py](https://github.com/Marchisceddu/finestSAM/blob/main/finestSAM/model/dataset.py))
 
 - [ ] Validation method based on SAM automatic predictor
+
+- [ ] Test
 
 - [ ] tpu support
 

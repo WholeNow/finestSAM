@@ -78,6 +78,9 @@ class FocalLoss(nn.Module):
         return loss.mean(1).sum() / num_masks
     
 
+# Metrics 
+# (now in the code are used segmentation_models_pytorch library, but we can use these implementations if needed)
+
 class CalcIoU(nn.Module):
 
     def __init__(self, smooth: int = 1e-7):
@@ -104,3 +107,31 @@ class CalcIoU(nn.Module):
         iou = (intersection + self.smooth) / (union + self.smooth)
 
         return iou
+
+
+class CalcDSC(nn.Module):
+
+    def __init__(self, smooth: int = 1e-7):
+        super().__init__()
+        self.smooth = smooth
+
+    def forward(self, inputs: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
+        """
+        Compute the Dice score.
+        Args:
+            inputs: A float tensor of arbitrary shape.
+                    The predictions for each example.
+            targets: A float tensor with the same shape as inputs. Stores the binary
+                    classification label for each element in inputs
+                    (0 for the negative class and 1 for the positive class).
+        """
+        inputs = (inputs > 0).float()
+
+        inputs = inputs.flatten(1)
+        targets = targets.flatten(1)
+
+        intersection = (inputs * targets).sum(1)
+        denominator = inputs.sum(1) + targets.sum(1)
+        dsc = (2 * intersection + self.smooth) / (denominator + self.smooth)
+
+        return dsc

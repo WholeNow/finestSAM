@@ -6,4 +6,3 @@ create_dataset/shp/*
 finestSAM/sav/*.pth
 finestSAM/sav/loggers_finestSAM/*
 finestSAM/out/*
-dataset/*
