@@ -187,15 +187,16 @@ def train_loop(
                 # uncommented these lines if you want use them instead of smp.metrics
                 # batch_iou = calc_iou(pred_masks, data["gt_masks"])
                 # batch_dsc = calc_dsc(pred_masks, data["gt_masks"])
+                batch_iou_predictions = torch.mean(iou_predictions)
                 
-                iter_metrics["iou"] += torch.mean(batch_iou)
-                iter_metrics["dsc"] += torch.mean(batch_dsc)
-                iter_metrics["iou_pred"] += torch.mean(iou_predictions)
+                iter_metrics["iou"] += batch_iou
+                iter_metrics["dsc"] += batch_dsc
+                iter_metrics["iou_pred"] += batch_iou_predictions
 
                 # Calculate the losses
                 iter_metrics["loss_focal"] += focal_loss(pred_masks, data["gt_masks"], len(pred_masks)) 
                 iter_metrics["loss_dice"] += dice_loss(pred_masks, data["gt_masks"], len(pred_masks))
-                iter_metrics["loss_iou"] += F.mse_loss(iou_predictions, batch_iou, reduction='mean')
+                iter_metrics["loss_iou"] += F.mse_loss(batch_iou_predictions, batch_iou, reduction='mean')
 
             loss_total = cfg.losses.focal_ratio * iter_metrics["loss_focal"] + cfg.losses.dice_ratio * iter_metrics["loss_dice"] + cfg.losses.iou_ratio * iter_metrics["loss_iou"]
 
@@ -228,6 +229,10 @@ def train_loop(
             
             val_iou, val_dsc = validate(fabric, cfg, model, val_dataloader, epoch)
 
+            # SEPARARE LE METRICHE DI TRAIN E VAL
+            # adesso le metriche vengono salvate solo quando viene effettuata una validation ma
+            # il grafico di training risulta piu' completo se vengono salvate ad ogni epoca
+            # sarebbe da valutare anche a a priori prima di iniziare il training
             metrics_history["epochs"].append(epoch)
             metrics_history["total_loss"].append(epoch_metrics.total_losses.avg)
             metrics_history["focal_loss"].append(cfg.losses.focal_ratio * epoch_metrics.focal_losses.avg)

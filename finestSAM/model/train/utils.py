@@ -1,4 +1,6 @@
 import os
+import sys
+import math
 import torch
 import lightning as L
 import matplotlib.pyplot as plt
@@ -161,10 +163,10 @@ def validate(
                 )
 
                 batch_iou = smp.metrics.iou_score(*batch_stats, reduction="micro-imagewise")
-                ious.update(batch_iou, num_images)
+                ious.update(batch_iou.item(), num_images)
                 
                 batch_dice = smp.metrics.f1_score(*batch_stats, reduction="micro-imagewise")
-                dsc.update(batch_dice, num_images)
+                dsc.update(batch_dice.item(), num_images)
             
             fabric.print(
                 f'Val: [{epoch}] - [{iter+1}/{len(val_dataloader)}]:'
