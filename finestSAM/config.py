@@ -70,27 +70,8 @@ config_train = {
         "auto_split": True,
         "seed": 42,
         "use_cache": True,
-        "split_path": {
-            "root_dir": "../dataset4img",
-            "images_dir": "images",
-            "annotation_file": "annotations.json",
-            "sav": "sav.pth",
-            "val_size": 0.3,
-        },
-        "no_split_path": {
-            "train": {
-                "root_dir": "../dataset/train",
-                "images_dir": "images",
-                "annotation_file": "annotations.json",
-                "sav": "sav.pth"
-            },
-            "val": {
-                "root_dir": "../dataset/val",
-                "images_dir": "images",
-                "annotation_file": "annotations.json",
-                "sav": "sav.pth"
-            },
-        },
+        "sav": "sav.pth",
+        "val_size": 0.3,
         "positive_points": 1,
         "negative_points": 0,
         "use_center": True, # The first positive point is always the most significant for each mask

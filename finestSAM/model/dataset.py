@@ -320,7 +320,8 @@ def get_collate_fn(cfg: Box, type):
 
 def load_dataset(
         cfg: Box, 
-        img_size: int
+        img_size: int,
+        dataset_path: str
     ) -> Tuple[DataLoader, DataLoader]:
     """
     Load the dataset and return the dataloaders for training and validation.
@@ -340,13 +341,20 @@ def load_dataset(
     transform = ResizeData(img_size)
 
     # Load the dataset
-    main_directory = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    
+    if os.path.exists(os.path.join(dataset_path, "train")) and os.path.exists(os.path.join(dataset_path, "val")):
+        cfg.dataset.auto_split = False
+        print("Dataset already split found.")
+    elif os.path.exists(os.path.join(dataset_path, "data")):
+        cfg.dataset.auto_split = True
+        print("Unsplit dataset found. Will auto-split.")
+    else:
+        raise ValueError(f"Dataset structure not recognized in {dataset_path}. Expected 'train'/'val' or 'data' subdirectories.")
+
     if cfg.dataset.auto_split:
-        data_root_path = os.path.join(main_directory, cfg.dataset.split_path.root_dir)
-        data_path = os.path.join(data_root_path, cfg.dataset.split_path.images_dir)
-        annotations_path = os.path.join(data_root_path, cfg.dataset.split_path.annotation_file)
-        sav_path = os.path.join(data_root_path, cfg.dataset.split_path.sav)
+        data_root_path = os.path.join(dataset_path, "data")
+        data_path = os.path.join(data_root_path, "images")
+        annotations_path = os.path.join(data_root_path, "annotations.json")
+        sav_path = os.path.join(data_root_path, cfg.dataset.sav)
 
         data = COCODataset(images_dir=data_path,
                         annotation_file=annotations_path,
@@ -358,20 +366,20 @@ def load_dataset(
         
         # Calc the size of the validation set
         total_size = len(data)
-        val_size = int(total_size * cfg.dataset.split_path.val_size)
+        val_size = int(total_size * cfg.dataset.val_size)
 
         # Split the dataset into training and validation
         train_data, val_data = random_split(data, [total_size - val_size, val_size], generator=generator)
     else:
-        train_root_path = os.path.join(main_directory, cfg.dataset.no_split_path.train.root_dir)
-        train_path = os.path.join(train_root_path, cfg.dataset.no_split_path.train.images_dir)
-        train_annotations_path = os.path.join(train_root_path, cfg.dataset.no_split_path.train.annotation_file)
-        train_sav_path = os.path.join(train_root_path, cfg.dataset.no_split_path.train.sav)
+        train_root_path = os.path.join(dataset_path, "train")
+        train_path = os.path.join(train_root_path, "images")
+        train_annotations_path = os.path.join(train_root_path, "annotations.json")
+        train_sav_path = os.path.join(train_root_path, cfg.dataset.sav)
 
-        val_root_path = os.path.join(main_directory, cfg.dataset.no_split_path.val.root_dir)    
-        val_path =  os.path.join(val_root_path, cfg.dataset.no_split_path.val.images_dir)
-        val_annotations_path = os.path.join(val_root_path, cfg.dataset.no_split_path.val.annotation_file)
-        val_sav_path = os.path.join(val_root_path, cfg.dataset.no_split_path.val.sav)
+        val_root_path = os.path.join(dataset_path, "val")    
+        val_path =  os.path.join(val_root_path, "images")
+        val_annotations_path = os.path.join(val_root_path, "annotations.json")
+        val_sav_path = os.path.join(val_root_path, cfg.dataset.sav)
 
 
         train_data = COCODataset(images_dir=train_path,
@@ -389,6 +397,9 @@ def load_dataset(
                         seed=cfg.seed_dataloader,
                         sav_path=val_sav_path,
                         use_cache=cfg.dataset.use_cache)
+    
+
+
     
     train_dataloader = DataLoader(train_data,
                                   batch_size=cfg.batch_size,

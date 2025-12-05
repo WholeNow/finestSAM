@@ -9,22 +9,39 @@ This project was carried out as part of the thesis at the University of Cagliari
 The main goal is to perform fine-tuning of the Segment-Anything model by MetaAI on a custom dataset in COCO format, with the aim of providing an effective implementation for predictions using SAM's automatic predictor.
 The code utilizes the Fabric framework from Lightning AI to offer an efficient implementation of the model.
 
+> [!NOTE]
+> Currently, this project implements a **classic fine-tuning** approach.
+
 To read the full research conducted for solving the task, you can consult the thesis (in Italian) at [`link`](https://drive.google.com/file/d/1JJwgVJOXWdbUqyN0FSMuvoJxFhoqSF4g/view?usp=sharing)
 
 ## Dataset
 
-To add a COCO-formatted dataset into the main directory, you should structure your dataset directory as follows:
+You can structure your dataset in two ways, depending on whether you want the script to automatically split it into training and validation sets or if you prefer to provide them manually.
 
-```python
+### Option 1: Auto-Split
+If you want the script to handle the split, organize your folder as follows:
+
+```
 dataset/
-├── images/  # Folder containing the dataset images
-│   ├── 0.png
-│   ├── 1.png
-│   └── ...
-└── annotations.json  # COCO-formatted annotations file
+└── data/
+    ├── images/           # Folder containing all images
+    │   ├── 0.png
+    │   └── ...
+    └── annotations.json  # COCO annotations for all images
 ```
 
-To specify the name of the dataset in the model, modify the relevant settings as explained in the Config section of the [`finestSAM/config.py`](https://github.com/Marchisceddu/finestSAM/blob/main/finestSAM/config.py). By default, the model expects a folder named `"dataset"`. Ensure that the dataset path is correctly referenced in this file for proper integration.
+### Option 2: Pre-Split
+If you already have separate training and validation sets:
+
+```
+dataset/
+├── train/
+│   ├── images/
+│   └── annotations.json
+└── val/
+    ├── images/
+    └── annotations.json
+```
 
 ## Setup
 
@@ -49,145 +66,103 @@ This will ensure that all required packages and libraries are installed and read
 
 ## Config
 
-The hyperparameters required for the model are specified in the file [`finestSAM/config.py`](https://github.com/Marchisceddu/finestSAM/blob/main/finestSAM/config.py)
+The hyperparameters required for the model are specified in [`finestSAM/config.py`](https://github.com/Marchisceddu/finestSAM/blob/main/finestSAM/config.py).
 
 <details>
+<summary> <b>Configuration Overview</b> </summary>
 
-<summary> Here's a detailed summary of the configuration structure for the model: </summary>
+### **General**
+- `device`: Hardware to run the model ("auto", "gpu", "cpu").
+- `num_devices`: Number of devices or "auto".
+- `num_nodes`: Number of GPU nodes for distributed training.
+- `seed_device`: Seed for device reproducibility (or None).
+- `sav_dir`: Output folder for model saves.
+- `out_dir`: Output folder for predictions.
+- `model`:
+    - `type`: Model type ("vit_h", "vit_l", "vit_b").
+    - `checkpoint`: Path to the .pth checkpoint file.
 
-### **General Configuration**:
-```python
-"device": str = "auto" or "gpu" or "cpu", # Hardware to run the model (mps not supported; set to cpu for Mac M1)
-"num_devices": int or (list of str) or str = "auto", # Number of devices or list of GPUs or auto to select the best device
-"num_nodes": int, # Number of GPU nodes for distributed training
-"seed_device": int / None for random,
-"sav_dir": str, # Output folder for model saves
-"out_dir": str, # Output folder for predictions
+### **Training**
+- `seed_dataloader`: Seed for dataloader reproducibility (or None).
+- `batch_size`: Batch size for images.
+- `num_workers`: Number of subprocesses for data loading.
+- `num_epochs`: Number of training epochs.
+- `eval_interval`: Interval (in epochs) for validation.
+- `prompts`:
+    - `use_boxes`: Use bounding boxes for training.
+    - `use_points`: Use points for training.
+    - `use_masks`: Use mask annotations for training.
+    - `use_logits`: Use logits from previous epoch.
+- `multimask_output`: (Bool) Enable multimask output.
+- `opt`:
+    - `learning_rate`: Learning rate.
+    - `weight_decay`: Weight decay.
+- `sched`:
+    - `type`: Scheduler type ("ReduceLROnPlateau" or "LambdaLR").
+    - `LambdaLR`:
+        - `decay_factor`: Learning rate decay factor.
+        - `steps`: List of steps for decay.
+        - `warmup_steps`: Number of warmup epochs.
+    - `ReduceLROnPlateau`:
+        - `decay_factor`: Learning rate decay factor.
+        - `epoch_patience`: Patience for LR decay.
+        - `threshold`: Threshold for measuring the new optimum.
+        - `cooldown`: Number of epochs to wait before resuming normal operation.
+        - `min_lr`: Minimum learning rate.
+- `losses`:
+    - `focal_ratio`: Weight of focal loss.
+    - `dice_ratio`: Weight of dice loss.
+    - `iou_ratio`: Weight of IoU loss.
+    - `focal_alpha`: Alpha value for focal loss.
+    - `focal_gamma`: Gamma value for focal loss.
+- `model_layer`:
+    - `freeze`:
+        - `image_encoder`: Freeze image encoder.
+        - `prompt_encoder`: Freeze prompt encoder.
+        - `mask_decoder`: Freeze mask decoder.
 
-"model": {
-    "type": str = "vit_h" or "vit_l" or "vit_b", # Model type
-    "checkpoint": str, # Checkpoint name in .pth format
-},
-```
+### **Dataset**
+- `auto_split`: (Bool) Automatically split dataset.
+- `seed`: Seed for dataset operations.
+- `use_cache`: (Bool) Use cached dataset metadata.
+- `sav`: Filename for saving dataset cache.
+- `val_size`: (Float) Validation split percentage.
+- `positive_points`: Number of positive points per mask.
+- `negative_points`: Number of negative points per mask.
+- `use_center`: Use the mask center as a key point.
+- `snap_to_grid`: Align points to the automatic predictor grid.
 
-### **Training Configuration**:
-```python
-"seed_dataloader": int / None for random,
-"batch_size": int, # Batch size for images
-"num_workers": int, # Number of subprocesses for data loading (0 means loading in the main process)
-
-"num_epochs": int, # Number of training epochs
-"eval_interval": int, # Validation interval
-"prompts": {
-    "use_boxes": bool, # Whether to use bounding boxes for training
-    "use_points": bool, # Whether to use points for training
-    "use_masks": bool, # Whether to use annotations for training
-    "use_logits": bool, # Whether to use logits from the previous epoch (if True, ignore use_masks)
-},
-"multimask_output": bool,
-
-"opt": {
-    "learning_rate": int, # Learning rate
-    "weight_decay": int, # Weight decay
-},
-
-"sched": {
-        "type": str = "ReduceLROnPlateau" or  "LambdaLR",
-        "LambdaLR": {
-            "decay_factor": int, # Learning rate decay factor using the formula -> 1 / (decay_factor ** (mul_factor+1))
-            "steps": list int, # List of steps at which the LR should decay
-            "warmup_steps": int, # Number of epochs for LR warmup
-        },
-        "ReduceLROnPlateau": {
-            "decay_factor": float (0-1), # LR decay factor (e.g., lr * factor)
-            "epoch_patience": int, # Patience for LR decay
-            "threshold": float,
-            "cooldown": int,
-            "min_lr": int,
-        },
-    },
-
-"losses": {
-    "focal_ratio": float, # Weight of focal loss in the total loss
-    "dice_ratio": float, # Weight of dice loss in the total loss
-    "iou_ratio": float, # Weight of IoU loss in the total loss
-    "focal_alpha": float, # Alpha value for focal loss
-    "focal_gamma": int, # Gamma value for focal loss
-},
-
-"model_layer": {
-    "freeze": {
-        "image_encoder": bool, # If True, freeze image encoder layer
-        "prompt_encoder": bool, # If True, freeze prompt encoder layer
-        "mask_decoder": bool, # If True, freeze mask decoder layer
-    },
-},
-
-"dataset": {
-    "auto_split": bool, # If True, splits the dataset for validation
-    "seed": 42,
-    "use_cache": bool, # if True, attempt to load/save precomputed dataset metadata to sav_path
-    "split_path": {
-        "root_dir": str,
-        "images_dir": str,
-        "annotation_file": str,
-        "sav": str, # Remove old saves on setting changes
-        "val_size": float (0-1), # Validation dataset size percentage
-    },
-    "no_split_path": {
-        "train": {
-            "root_dir": str,
-            "images_dir": str,
-            "annotation_file": str,
-            "sav": str, # Remove old saves on setting changes
-        },
-        "val": {
-            "root_dir": str,
-            "images_dir": str,
-            "annotation_file": str,
-            "sav": str, # Remove old saves on setting changes
-        },
-    },
-    "positive_points": int, # Number of positive points passed with __getitem__
-    "negative_points": int, # Number of negative points passed with __getitem__
-    "use_center": True, # The first positive point is always the most significant for each mask
-    "snap_to_grid": True, # Align the center to the prediction grid used by the automatic predictor
-}
-```
-
-### **Prediction Configuration**:
-```python
-"opacity": float,  # Transparency of predicted masks when displaying the image
-```
+### **Prediction**
+- `opacity`: Transparency of predicted masks (0.0 - 1.0).
 
 </details>
 
 ## Run model
 
-To execute the file [`finestSAM/__main__.py`](https://github.com/Marchisceddu/finestSAM/blob/main/finestSAM/__main__.py), use the following command-line arguments, depending on the task you want to perform:
+To execute the file [`finestSAM/__main__.py`](https://github.com/Marchisceddu/finestSAM/blob/main/finestSAM/__main__.py), use the following command-line arguments.
+
+> [!TIP]
+> Check out the [`notebook.ipynb`](https://github.com/Marchisceddu/finestSAM/blob/main/notebook.ipynb) for the most up-to-date usage examples and easy experimentation.
 
 ### **Training the Model:**
-   Run the training process by specifying the `--mode` as "train":
+Run the training process by specifying the mode and the dataset path:
 
-   ```bash
-   python -m finestSAM --mode "train"
-   ```
+```bash
+python -m finestSAM --mode "train" --dataset "path/to/dataset"
+```
 
 ### **Automatic Predictions:**
-   For making predictions, use the `--mode` as "predict" and specify the input image path:
+For making predictions, specify the input image path:
 
-   ```bash
-   python -m finestSAM --mode "predict" --input "path/to/image.png"
-   ```
+```bash
+python -m finestSAM --mode "predict" --input "path/to/image.png"
+```
 
-   Optionally, you can also modify the opacity of the predicted masks with the `--opacity` argument. The default value is 0.9:
+Optionally, modify the mask opacity (default 0.9):
 
-   ```bash
-   python -m finestSAM --mode "predict" --input "path/to/image.png" --opacity 0.8
-   ```
-
-
-In addition to running the script directly, there is an [`example notebook`](https://github.com/Marchisceddu/finestSAM/blob/main/notebook.ipynb) available for better understanding and easy experimentation.
+```bash
+python -m finestSAM --mode "predict" --input "path/to/image.png" --opacity 0.8
+```
 
 ## Results
 
@@ -255,8 +230,6 @@ For this task, a single prompt was used during training: __1 central point per m
 
 ## To-Do List
 
-- [ ] Added a function to predict using the manual predictor
-
 - [ ] Added a function to create the bounding boxes for training (suggestion on line 175 [finestSAM/model/dataset.py](https://github.com/Marchisceddu/finestSAM/blob/main/finestSAM/model/dataset.py))
 
 - [ ] Validation method based on SAM automatic predictor
@@ -264,6 +237,8 @@ For this task, a single prompt was used during training: __1 central point per m
 - [ ] Test
 
 - [ ] tpu support
+
+- [ ] Adapter Lora fine-tuning method
 
 ## Resources
 

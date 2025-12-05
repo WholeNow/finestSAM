@@ -9,25 +9,24 @@ from lightning.fabric.fabric import _FabricOptimizer
 from lightning.fabric.loggers import TensorBoardLogger
 import segmentation_models_pytorch as smp
 from .utils import (
-    AverageMeter,
     Metrics,
     validate,
     print_and_log_metrics,
     plot_history,
-    save
+    save,
+    save_train_metrics,
+    save_val_metrics
 )
 from .losses import (
     DiceLoss,
-    FocalLoss,
-    CalcIoU,
-    CalcDSC
+    FocalLoss
 )
 from ..model import FinestSAM
 from .utils import configure_opt
 from ..dataset import load_dataset
 
 
-def call_train(cfg: Box):
+def call_train(cfg: Box, dataset_path: str):
     # Set up the output directory
     main_directory = os.path.dirname(os.path.abspath(__file__)).rsplit('/', 2)[0]
     cfg.sav_dir = os.path.join(main_directory, cfg.sav_dir)
@@ -41,7 +40,7 @@ def call_train(cfg: Box):
                       num_nodes=cfg.num_nodes, 
                       loggers=loggers)
     
-    fabric.launch(train, cfg)
+    fabric.launch(train, cfg, dataset_path)
 
 
 def train(fabric, *args, **kwargs):
@@ -57,6 +56,7 @@ def train(fabric, *args, **kwargs):
     """
     # Get the arguments
     cfg = args[0]
+    dataset_path = args[1]
 
     fabric.seed_everything(cfg.seed_device)
 
@@ -70,7 +70,7 @@ def train(fabric, *args, **kwargs):
         model.to(fabric.device)
 
     # Load the dataset
-    train_data, val_data = load_dataset(cfg, model.model.image_encoder.img_size)
+    train_data, val_data = load_dataset(cfg, model.model.image_encoder.img_size, dataset_path)
     train_data = fabric._setup_dataloader(train_data)
     val_data = fabric._setup_dataloader(val_data)
 
@@ -109,8 +109,7 @@ def train_loop(
     best_iou_ckpt_path = ""
     best_dsc_ckpt_path = ""
 
-    plots = os.path.join(cfg.out_dir, "plots")
-    os.makedirs(plots, exist_ok=True)
+    os.makedirs(cfg.out_dir, exist_ok=True)
     metrics_history = {
         "total_loss": [],
         "focal_loss": [],
@@ -122,6 +121,12 @@ def train_loop(
         "val_dsc": [],
         "epochs": [],
     }
+
+    # Initial validation
+    val_iou, val_dsc = 0., 0.
+    if cfg.eval_interval > 0:
+        val_iou, val_dsc = validate(fabric, cfg, model, val_dataloader, 0)
+        save_val_metrics(0, val_iou, val_dsc, cfg.out_dir)
 
     for epoch in range(1, cfg.num_epochs+1):
         # Initialize the meters
@@ -229,22 +234,6 @@ def train_loop(
             
             val_iou, val_dsc = validate(fabric, cfg, model, val_dataloader, epoch)
 
-            # SEPARARE LE METRICHE DI TRAIN E VAL
-            # adesso le metriche vengono salvate solo quando viene effettuata una validation ma
-            # il grafico di training risulta piu' completo se vengono salvate ad ogni epoca
-            # sarebbe da valutare anche a a priori prima di iniziare il training
-            metrics_history["epochs"].append(epoch)
-            metrics_history["total_loss"].append(epoch_metrics.total_losses.avg)
-            metrics_history["focal_loss"].append(cfg.losses.focal_ratio * epoch_metrics.focal_losses.avg)
-            metrics_history["dice_loss"].append(cfg.losses.dice_ratio * epoch_metrics.dice_losses.avg)
-            metrics_history["iou_loss"].append(cfg.losses.iou_ratio * epoch_metrics.space_iou_losses.avg)
-            metrics_history["train_iou"].append(epoch_metrics.ious.avg)
-            metrics_history["train_dsc"].append(epoch_metrics.dsc.avg)
-            metrics_history["val_iou"].append(val_iou)
-            metrics_history["val_dsc"].append(val_dsc)
-
-            plot_history(metrics_history, plots)
-
             if val_iou > best_val_iou:
                 best_val_iou = val_iou
                 if os.path.exists(best_iou_ckpt_path):
@@ -270,3 +259,18 @@ def train_loop(
                 best_dsc_ckpt_path = os.path.join(cfg.sav_dir, ckpt_name + ".pth")
                 save(fabric, model, cfg.sav_dir, ckpt_name)
                 fabric.print(f"New best DSC model saved: {ckpt_name}.pth")
+            
+            save_val_metrics(epoch, val_iou, val_dsc, cfg.out_dir)
+
+        metrics_history["epochs"].append(epoch)
+        metrics_history["total_loss"].append(epoch_metrics.total_losses.avg)
+        metrics_history["focal_loss"].append(cfg.losses.focal_ratio * epoch_metrics.focal_losses.avg)
+        metrics_history["dice_loss"].append(cfg.losses.dice_ratio * epoch_metrics.dice_losses.avg)
+        metrics_history["iou_loss"].append(cfg.losses.iou_ratio * epoch_metrics.space_iou_losses.avg)
+        metrics_history["train_iou"].append(epoch_metrics.ious.avg)
+        metrics_history["train_dsc"].append(epoch_metrics.dsc.avg)
+        metrics_history["val_iou"].append(val_iou)
+        metrics_history["val_dsc"].append(val_dsc)
+
+        plot_history(metrics_history, cfg.out_dir)
+        save_train_metrics(metrics_history, cfg.out_dir)
